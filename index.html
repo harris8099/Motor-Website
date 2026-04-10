@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Motor Dashboard</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Top Bar -->
+    <div class="topbar">
+      <h1>ESP32 Motor Dashboard</h1>
+      <div class="topbar-right">
+        <span class="status-indicator">
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-txt" id="statusText">Connecting...</span>
+        </span>
+        <span class="timestamp" id="timestamp">--:--:--</span>
+        <span class="date" id="date">--/--/----</span>
+
+      </div>
+    </div>
+
+    <!-- Motor Status Section -->
+    <div class="section-title">Motor status</div>
+    <div class="section-content">
+      <div class="motor-status-card">
+        <div class="motor-indicator" id="motorIndicator">
+          <div class="motor-dot" id="motorDot"></div>
+        </div>
+        <div>
+          <div class="motor-label" id="motorLabel">Stopped</div>
+          <div class="motor-sublabel">Relay — motor contactor</div>
+        </div>
+        <div class="motor-stats">
+          <div class="card-label">RPM</div>
+          <div class="motor-value" id="rpm">0</div>
+        </div>
+        <div class="motor-stats">
+          <div class="card-label">Pulse count</div>
+          <div class="motor-pulse" id="pulse">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Power Section -->
+    <div class="section-title">Power — PZEM-004T</div>
+    <div class="grid">
+      <div class="card">
+        <div class="card-label">Voltage</div>
+        <div class="card-value" id="voltage">0<span class="card-unit">V</span></div>
+        <div class="mini-bar"><div class="mini-bar-fill" id="voltageBar"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Current</div>
+        <div class="card-value" id="current">0<span class="card-unit">A</span></div>
+        <div class="mini-bar"><div class="mini-bar-fill" id="currentBar"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Active power</div>
+        <div class="card-value" id="power">0<span class="card-unit">W</span></div>
+        <div class="mini-bar"><div class="mini-bar-fill" id="powerBar"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Power factor</div>
+        <div class="card-value" id="powerFactor">0.00</div>
+        <div class="mini-bar"><div class="mini-bar-fill" id="powerFactorBar"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Energy</div>
+        <div class="card-value" id="energy">0<span class="card-unit">kWh</span></div>
+        <div class="card-sub">Since reset</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Frequency</div>
+        <div class="card-value" id="frequency">0<span class="card-unit">Hz</span></div>
+        <div class="card-sub">AC line</div>
+      </div>
+    </div>
+
+    <!-- Temperature Section -->
+    <div class="section-title">Temperature — DS18B20</div>
+    <div class="grid grid-2col">
+      <div class="card">
+        <div class="card-label">Sensor 1 — Motor winding</div>
+        <div class="card-value" id="temp1">0<span class="card-unit">°C</span></div>
+        <div class="mini-bar"><div class="mini-bar-fill" id="temp1Bar"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Sensor 2 — Ambient</div>
+        <div class="card-value" id="temp2">0<span class="card-unit">°C</span></div>
+        <div class="mini-bar"><div class="mini-bar-fill" id="temp2Bar"></div></div>
+      </div>
+    </div>
+
+    <!-- Vibration Section -->
+    <div class="section-title">Vibration — ADXL345</div>
+    <div class="grid grid-2col">
+      <div class="card">
+        <div class="card-label">Acceleration (m/s²)</div>
+        <div class="accel-row">
+          <div class="accel-cell">
+            <div class="accel-axis">X</div>
+            <div class="accel-val" id="accelX">0.00</div>
+          </div>
+          <div class="accel-cell">
+            <div class="accel-axis">Y</div>
+            <div class="accel-val" id="accelY">0.00</div>
+          </div>
+          <div class="accel-cell">
+            <div class="accel-axis">Z</div>
+            <div class="accel-val" id="accelZ">0.00</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Tap detected</div>
+        <div class="badge badge-off" id="tapBadge">No tap</div>
+      </div>
+    </div>
+
+    <!-- Data Log Section -->
+    <div class="section-title">Data log</div>
+    <div class="log-wrap">
+      <div class="log-inner">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>V (V)</th>
+              <th>A (A)</th>
+              <th>W (W)</th>
+              <th>T1 (°C)</th>
+              <th>T2 (°C)</th>
+              <th>RPM</th>
+            </tr>
+          </thead>
+          <tbody id="logBody">
+            <tr><td colspan="7" class="no-data">No data available</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
