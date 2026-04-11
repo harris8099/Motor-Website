@@ -44,8 +44,32 @@
       </div>
     </div>
 
+    <!-- Faults Section -->
+     <div class="section-content">
+    <div class="card fault-summary-card">
+      <div class="card-label">Live faults</div>
+      <div class="faults-chips">
+        <div class="fault-chip" data-icon="⚡">
+          <span class="fault-name">Overcurrent</span>
+          <span class="fault-state badge" id="fault_overcurrent">OK</span>
+        </div>
+        <div class="fault-chip" data-icon="🌡️">
+          <span class="fault-name">Overtemp</span>
+          <span class="fault-state badge" id="fault_overtemp">OK</span>
+        </div>
+        <div class="fault-chip" data-icon="⛔">
+          <span class="fault-name">Stall</span>
+          <span class="fault-state badge" id="fault_stall">OK</span>
+        </div>
+        <div class="fault-chip" data-icon="📳">
+          <span class="fault-name">Vibration</span>
+          <span class="fault-state badge" id="fault_vibration">OK</span>
+        </div>
+      </div>
+    </div>
+</div>
     <!-- Power Section -->
-    <div class="section-title">Power — PZEM-004T</div>
+    <div class="section-title">Power metrics</div>
     <div class="grid">
       <div class="card">
         <div class="card-label">Voltage</div>
@@ -77,25 +101,30 @@
         <div class="card-value" id="frequency">0<span class="card-unit">Hz</span></div>
         <div class="card-sub">AC line</div>
       </div>
-    </div>
-
-    <!-- Temperature Section -->
-    <div class="section-title">Temperature — DS18B20</div>
-    <div class="grid grid-2col">
       <div class="card">
-        <div class="card-label">Sensor 1 — Motor winding</div>
+        <div class="card-label">Vibration</div>
+        <div class="card-value"><span id="vibrationMagnitude">0.00</span><span class="card-unit">m/s²</span></div>
+        <div class="card-sub">Overall motion level</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Tap detected</div>
+        <div class="card-value" id="tapValue">No</div>
+        <div class="card-sub">Sensor trigger</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Temp 1 — Motor winding</div>
         <div class="card-value" id="temp1">0<span class="card-unit">°C</span></div>
         <div class="mini-bar"><div class="mini-bar-fill" id="temp1Bar"></div></div>
       </div>
       <div class="card">
-        <div class="card-label">Sensor 2 — Ambient</div>
+        <div class="card-label">Temp 2 — Ambient</div>
         <div class="card-value" id="temp2">0<span class="card-unit">°C</span></div>
         <div class="mini-bar"><div class="mini-bar-fill" id="temp2Bar"></div></div>
       </div>
     </div>
 
     <!-- Vibration Section -->
-    <div class="section-title">Vibration — ADXL345</div>
+    <div class="section-title">Motion sensors</div>
     <div class="grid grid-2col">
       <div class="card">
         <div class="card-label">Acceleration (m/s²)</div>
@@ -114,12 +143,7 @@
           </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-label">Tap detected</div>
-        <div class="badge badge-off" id="tapBadge">No tap</div>
-      </div>
     </div>
-
     <!-- Data Log Section -->
     <div class="section-title">Data log</div>
     <div class="log-wrap">
