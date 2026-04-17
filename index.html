@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+ï»¿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kinetic Engine Dashboard</title>
+  <title>Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
   <div class="bg-aurora" aria-hidden="true"></div>
   <div class="container">
     <div class="topbar">
-      <h1>KINETIC ENGINE</h1>
+      <h1>SMART MOTOR</h1>
       <div class="topbar-right">
         <a class="top-link" href="index.html">Dashboard</a>
         <a class="top-link" href="log.html">Telemetry Log</a>
@@ -82,10 +82,10 @@
             <div class="card"><div class="card-label">Power Factor</div><div class="card-value" id="powerFactor">0.00</div><div class="mini-bar"><div class="mini-bar-fill" id="powerFactorBar"></div></div></div>
             <div class="card"><div class="card-label">Energy</div><div class="card-value" id="energy">0<span class="card-unit">kWh</span></div><div class="card-sub">Since reset</div></div>
             <div class="card"><div class="card-label">Frequency</div><div class="card-value" id="frequency">0<span class="card-unit">Hz</span></div><div class="card-sub">AC line</div></div>
-            <div class="card"><div class="card-label">Vibration</div><div class="card-value"><span id="vibrationMagnitude">0.00</span><span class="card-unit">m/s²</span></div><div class="card-sub">Overall motion level</div></div>
+            <div class="card"><div class="card-label">Vibration</div><div class="card-value"><span id="vibrationMagnitude">0.00</span><span class="card-unit">m/sï¿½</span></div><div class="card-sub">Overall motion level</div></div>
             <div class="card"><div class="card-label">Tap detected</div><div class="card-value" id="tapValue">No</div><div class="card-sub">Sensor trigger</div></div>
-            <div class="card"><div class="card-label">Temp 1 - Motor winding</div><div class="card-value" id="temp1">0<span class="card-unit">°C</span></div><div class="mini-bar"><div class="mini-bar-fill" id="temp1Bar"></div></div></div>
-            <div class="card"><div class="card-label">Temp 2 - Ambient</div><div class="card-value" id="temp2">0<span class="card-unit">°C</span></div><div class="card-sub" id="ambientLocationLabel">Location: Detecting...</div><div class="mini-bar"><div class="mini-bar-fill" id="temp2Bar"></div></div></div>
+            <div class="card"><div class="card-label">Temp 1 - Motor winding</div><div class="card-value" id="temp1">0<span class="card-unit">ï¿½C</span></div><div class="mini-bar"><div class="mini-bar-fill" id="temp1Bar"></div></div></div>
+            <div class="card"><div class="card-label">Temp 2 - Ambient</div><div class="card-value" id="temp2">0<span class="card-unit">ï¿½C</span></div><div class="card-sub" id="ambientLocationLabel">Location: Detecting...</div><div class="mini-bar"><div class="mini-bar-fill" id="temp2Bar"></div></div></div>
           </div>
         </section>
 
@@ -114,7 +114,7 @@
           <div class="section-content">
             <div class="grid grid-2col">
               <div class="card">
-                <div class="card-label">Acceleration (m/s²)</div>
+                <div class="card-label">Acceleration (m/sï¿½)</div>
                 <div class="accel-row">
                   <div class="accel-cell"><div class="accel-axis">X</div><div class="accel-val" id="accelX">0.00</div></div>
                   <div class="accel-cell"><div class="accel-axis">Y</div><div class="accel-val" id="accelY">0.00</div></div>
@@ -133,7 +133,7 @@
               <div class="trend-card"><div class="trend-title">Current (A)</div><canvas id="trendCurrent" class="trend-canvas" width="420" height="120"></canvas></div>
               <div class="trend-card"><div class="trend-title">Power (W)</div><canvas id="trendPower" class="trend-canvas" width="420" height="120"></canvas></div>
               <div class="trend-card"><div class="trend-title">RPM</div><canvas id="trendRpm" class="trend-canvas" width="420" height="120"></canvas></div>
-              <div class="trend-card trend-card-wide"><div class="trend-title">Temp 1 (°C)</div><canvas id="trendTemp1" class="trend-canvas" width="860" height="120"></canvas></div>
+              <div class="trend-card trend-card-wide"><div class="trend-title">Temp 1 (ï¿½C)</div><canvas id="trendTemp1" class="trend-canvas" width="860" height="120"></canvas></div>
             </div>
           </div>
         </section>
