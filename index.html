@@ -1,17 +1,23 @@
-ï»¿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ESP32 Motor Dashboard</title>
+  <title>Kinetic Engine Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700" rel="stylesheet">
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
+  <div class="bg-aurora" aria-hidden="true"></div>
   <div class="container">
     <div class="topbar">
-      <h1>ESP32 Motor Dashboard</h1>
+      <h1>KINETIC ENGINE</h1>
       <div class="topbar-right">
-        <a class="top-link" href="log.html">Log</a>
+        <a class="top-link" href="index.html">Dashboard</a>
+        <a class="top-link" href="log.html">Telemetry Log</a>
         <a class="top-link" href="settings.html">Maintenance Settings</a>
         <span class="status-indicator">
           <span class="status-dot" id="statusDot"></span>
@@ -23,9 +29,25 @@
     </div>
 
     <div class="dashboard-main dashboard-main-home">
+      <aside class="dashboard-side">
+        <div class="side-unit">
+          <span class="material-symbols-outlined">settings_input_component</span>
+          <div>
+            <div class="side-unit-title">Unit 01</div>
+            <div class="side-unit-sub">Active Engine State</div>
+          </div>
+        </div>
+        <nav class="side-nav">
+          <a class="side-link active" href="index.html"><span class="material-symbols-outlined">speed</span>Dashboard</a>
+          <a class="side-link" href="log.html"><span class="material-symbols-outlined">analytics</span>Telemetry</a>
+          <a class="side-link" href="#faults"><span class="material-symbols-outlined">warning</span>Diagnostics</a>
+          <a class="side-link" href="settings.html"><span class="material-symbols-outlined">settings</span>Settings</a>
+        </nav>
+      </aside>
+
       <div class="dashboard-col dashboard-col-left">
         <section class="dashboard-panel panel-motor">
-          <div class="section-title">Motor status</div>
+          <div class="section-title">Motor Core Status</div>
           <div class="section-content">
             <div class="motor-status-card">
               <div class="motor-header">
@@ -38,45 +60,37 @@
                 </div>
               </div>
               <div class="motor-metrics-grid">
-                <div class="motor-stats">
-                  <div class="card-label">RPM</div>
-                  <div class="motor-value" id="rpm">0</div>
-                </div>
-                <div class="motor-stats">
-                  <div class="card-label">Pulse count</div>
-                  <div class="motor-pulse" id="pulse">0</div>
-                </div>
-                <div class="motor-stats">
-                  <div class="card-label">Uptime</div>
-                  <div class="motor-pulse" id="uptimeValue">--</div>
-                </div>
-                <div class="motor-stats">
-                  <div class="card-label">Next maintenance</div>
-                  <div class="motor-pulse" id="nextMaintenanceValue">--</div>
-                </div>
-                <div class="motor-stats">
-                  <div class="card-label">Due by hours</div>
-                  <div class="motor-pulse" id="dueByHoursValue">--</div>
-                </div>
-                <div class="motor-stats">
-                  <div class="card-label">Due by date</div>
-                  <div class="motor-pulse" id="dueByDateValue">--</div>
-                </div>
-                <div class="motor-stats">
-                  <div class="card-label">Maintenance status</div>
-                  <div class="motor-pulse" id="maintenanceStatusValue">--</div>
-                </div>
-                <div class="motor-stats">
-                  <div class="card-label">Remaining life cycle</div>
-                  <div class="motor-pulse" id="remainingLifeCycleValue">--</div>
-                </div>
+                <div class="motor-stats"><div class="card-label">RPM</div><div class="motor-value" id="rpm">0</div></div>
+                <div class="motor-stats"><div class="card-label">Pulse count</div><div class="motor-pulse" id="pulse">0</div></div>
+                <div class="motor-stats"><div class="card-label">Uptime</div><div class="motor-pulse" id="uptimeValue">--</div></div>
+                <div class="motor-stats"><div class="card-label">Next maintenance</div><div class="motor-pulse" id="nextMaintenanceValue">--</div></div>
+                <div class="motor-stats"><div class="card-label">Due by hours</div><div class="motor-pulse" id="dueByHoursValue">--</div></div>
+                <div class="motor-stats"><div class="card-label">Due by date</div><div class="motor-pulse" id="dueByDateValue">--</div></div>
+                <div class="motor-stats"><div class="card-label">Maintenance status</div><div class="motor-pulse" id="maintenanceStatusValue">--</div></div>
+                <div class="motor-stats"><div class="card-label">Remaining life cycle</div><div class="motor-pulse" id="remainingLifeCycleValue">--</div></div>
               </div>
             </div>
           </div>
         </section>
 
-        <section class="dashboard-panel panel-faults">
-          <div class="section-title">Faults</div>
+        <section class="dashboard-panel panel-power">
+          <div class="section-title">Live Telemetry</div>
+          <div class="grid grid-power">
+            <div class="card"><div class="card-label">Voltage</div><div class="card-value" id="voltage">0<span class="card-unit">V</span></div><div class="mini-bar"><div class="mini-bar-fill" id="voltageBar"></div></div></div>
+            <div class="card"><div class="card-label">Current</div><div class="card-value" id="current">0<span class="card-unit">A</span></div><div class="mini-bar"><div class="mini-bar-fill" id="currentBar"></div></div></div>
+            <div class="card"><div class="card-label">Active Power</div><div class="card-value" id="power">0<span class="card-unit">W</span></div><div class="mini-bar"><div class="mini-bar-fill" id="powerBar"></div></div></div>
+            <div class="card"><div class="card-label">Power Factor</div><div class="card-value" id="powerFactor">0.00</div><div class="mini-bar"><div class="mini-bar-fill" id="powerFactorBar"></div></div></div>
+            <div class="card"><div class="card-label">Energy</div><div class="card-value" id="energy">0<span class="card-unit">kWh</span></div><div class="card-sub">Since reset</div></div>
+            <div class="card"><div class="card-label">Frequency</div><div class="card-value" id="frequency">0<span class="card-unit">Hz</span></div><div class="card-sub">AC line</div></div>
+            <div class="card"><div class="card-label">Vibration</div><div class="card-value"><span id="vibrationMagnitude">0.00</span><span class="card-unit">m/s²</span></div><div class="card-sub">Overall motion level</div></div>
+            <div class="card"><div class="card-label">Tap detected</div><div class="card-value" id="tapValue">No</div><div class="card-sub">Sensor trigger</div></div>
+            <div class="card"><div class="card-label">Temp 1 - Motor winding</div><div class="card-value" id="temp1">0<span class="card-unit">°C</span></div><div class="mini-bar"><div class="mini-bar-fill" id="temp1Bar"></div></div></div>
+            <div class="card"><div class="card-label">Temp 2 - Ambient</div><div class="card-value" id="temp2">0<span class="card-unit">°C</span></div><div class="card-sub" id="ambientLocationLabel">Location: Detecting...</div><div class="mini-bar"><div class="mini-bar-fill" id="temp2Bar"></div></div></div>
+          </div>
+        </section>
+
+        <section class="dashboard-panel" id="faults">
+          <div class="section-title">Fault Monitors</div>
           <div class="section-content">
             <div class="card fault-summary-card">
               <div class="card-label">Live faults</div>
@@ -85,142 +99,44 @@
                 <button class="fault-action-btn" id="resolveAllFaultsBtn" type="button">Resolve All</button>
               </div>
               <div class="faults-chips">
-                <div class="fault-chip" data-icon="&#9889;">
-                  <span class="fault-name">Overcurrent</span>
-                  <span class="fault-state badge" id="fault_overcurrent">OK</span>
-                  <button class="fault-action-btn fault-action-inline" id="fault_overcurrent_action" type="button" hidden>Resolve</button>
-                </div>
-                <div class="fault-chip" data-icon="&#127777;">
-                  <span class="fault-name">Overtemp</span>
-                  <span class="fault-state badge" id="fault_overtemp">OK</span>
-                  <button class="fault-action-btn fault-action-inline" id="fault_overtemp_action" type="button" hidden>Resolve</button>
-                </div>
-                <div class="fault-chip" data-icon="&#9940;">
-                  <span class="fault-name">Stall</span>
-                  <span class="fault-state badge" id="fault_stall">OK</span>
-                  <button class="fault-action-btn fault-action-inline" id="fault_stall_action" type="button" hidden>Resolve</button>
-                </div>
-                <div class="fault-chip" data-icon="&#128243;">
-                  <span class="fault-name">Vibration</span>
-                  <span class="fault-state badge" id="fault_vibration">OK</span>
-                  <button class="fault-action-btn fault-action-inline" id="fault_vibration_action" type="button" hidden>Resolve</button>
-                </div>
+                <div class="fault-chip" data-icon="OC"><span class="fault-name">Overcurrent</span><span class="fault-state badge" id="fault_overcurrent">OK</span><button class="fault-action-btn fault-action-inline" id="fault_overcurrent_action" type="button" hidden>Resolve</button></div>
+                <div class="fault-chip" data-icon="OT"><span class="fault-name">Overtemp</span><span class="fault-state badge" id="fault_overtemp">OK</span><button class="fault-action-btn fault-action-inline" id="fault_overtemp_action" type="button" hidden>Resolve</button></div>
+                <div class="fault-chip" data-icon="ST"><span class="fault-name">Stall</span><span class="fault-state badge" id="fault_stall">OK</span><button class="fault-action-btn fault-action-inline" id="fault_stall_action" type="button" hidden>Resolve</button></div>
+                <div class="fault-chip" data-icon="VB"><span class="fault-name">Vibration</span><span class="fault-state badge" id="fault_vibration">OK</span><button class="fault-action-btn fault-action-inline" id="fault_vibration_action" type="button" hidden>Resolve</button></div>
               </div>
               <div class="fault-action-status" id="faultActionStatus"></div>
             </div>
           </div>
         </section>
 
-        <section class="dashboard-panel dashboard-panel-power panel-power">
-          <div class="section-title">Power metrics</div>
-          <div class="grid grid-power">
-            <div class="card">
-              <div class="card-label">Voltage</div>
-              <div class="card-value" id="voltage">0<span class="card-unit">V</span></div>
-              <div class="mini-bar"><div class="mini-bar-fill" id="voltageBar"></div></div>
-            </div>
-            <div class="card">
-              <div class="card-label">Current</div>
-              <div class="card-value" id="current">0<span class="card-unit">A</span></div>
-              <div class="mini-bar"><div class="mini-bar-fill" id="currentBar"></div></div>
-            </div>
-            <div class="card">
-              <div class="card-label">Active power</div>
-              <div class="card-value" id="power">0<span class="card-unit">W</span></div>
-              <div class="mini-bar"><div class="mini-bar-fill" id="powerBar"></div></div>
-            </div>
-            <div class="card">
-              <div class="card-label">Power factor</div>
-              <div class="card-value" id="powerFactor">0.00</div>
-              <div class="mini-bar"><div class="mini-bar-fill" id="powerFactorBar"></div></div>
-            </div>
-            <div class="card">
-              <div class="card-label">Energy</div>
-              <div class="card-value" id="energy">0<span class="card-unit">kWh</span></div>
-              <div class="card-sub">Since reset</div>
-            </div>
-            <div class="card">
-              <div class="card-label">Frequency</div>
-              <div class="card-value" id="frequency">0<span class="card-unit">Hz</span></div>
-              <div class="card-sub">AC line</div>
-            </div>
-            <div class="card">
-              <div class="card-label">Vibration</div>
-              <div class="card-value"><span id="vibrationMagnitude">0.00</span><span class="card-unit">m/sÂ²</span></div>
-              <div class="card-sub">Overall motion level</div>
-            </div>
-            <div class="card">
-              <div class="card-label">Tap detected</div>
-              <div class="card-value" id="tapValue">No</div>
-              <div class="card-sub">Sensor trigger</div>
-            </div>
-            <div class="card">
-              <div class="card-label">Temp 1 - Motor winding</div>
-              <div class="card-value" id="temp1">0<span class="card-unit">Â°C</span></div>
-              <div class="mini-bar"><div class="mini-bar-fill" id="temp1Bar"></div></div>
-            </div>
-            <div class="card">
-              <div class="card-label">Temp 2 - Ambient</div>
-              <div class="card-value" id="temp2">0<span class="card-unit">Â°C</span></div>
-              <div class="card-sub" id="ambientLocationLabel">Location: Detecting...</div>
-              <div class="mini-bar"><div class="mini-bar-fill" id="temp2Bar"></div></div>
-            </div>
-          </div>
-        </section>
-
-        <section class="dashboard-panel">
-          <div class="section-title">Live trends</div>
-          <div class="section-content">
-            <div class="trend-grid">
-              <div class="trend-card">
-                <div class="trend-title">Voltage (V)</div>
-                <canvas id="trendVoltage" class="trend-canvas" width="420" height="120"></canvas>
-              </div>
-              <div class="trend-card">
-                <div class="trend-title">Current (A)</div>
-                <canvas id="trendCurrent" class="trend-canvas" width="420" height="120"></canvas>
-              </div>
-              <div class="trend-card">
-                <div class="trend-title">Power (W)</div>
-                <canvas id="trendPower" class="trend-canvas" width="420" height="120"></canvas>
-              </div>
-              <div class="trend-card">
-                <div class="trend-title">RPM</div>
-                <canvas id="trendRpm" class="trend-canvas" width="420" height="120"></canvas>
-              </div>
-              <div class="trend-card trend-card-wide">
-                <div class="trend-title">Temp 1 (Â°C)</div>
-                <canvas id="trendTemp1" class="trend-canvas" width="860" height="120"></canvas>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section class="dashboard-panel panel-motion">
-          <div class="section-title">Motion sensors</div>
+          <div class="section-title">Motion Sensors</div>
           <div class="section-content">
             <div class="grid grid-2col">
               <div class="card">
-                <div class="card-label">Acceleration (m/sÂ²)</div>
+                <div class="card-label">Acceleration (m/s²)</div>
                 <div class="accel-row">
-                  <div class="accel-cell">
-                    <div class="accel-axis">X</div>
-                    <div class="accel-val" id="accelX">0.00</div>
-                  </div>
-                  <div class="accel-cell">
-                    <div class="accel-axis">Y</div>
-                    <div class="accel-val" id="accelY">0.00</div>
-                  </div>
-                  <div class="accel-cell">
-                    <div class="accel-axis">Z</div>
-                    <div class="accel-val" id="accelZ">0.00</div>
-                  </div>
+                  <div class="accel-cell"><div class="accel-axis">X</div><div class="accel-val" id="accelX">0.00</div></div>
+                  <div class="accel-cell"><div class="accel-axis">Y</div><div class="accel-val" id="accelY">0.00</div></div>
+                  <div class="accel-cell"><div class="accel-axis">Z</div><div class="accel-val" id="accelZ">0.00</div></div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
+        <section class="dashboard-panel">
+          <div class="section-title">Live Trends</div>
+          <div class="section-content">
+            <div class="trend-grid">
+              <div class="trend-card"><div class="trend-title">Voltage (V)</div><canvas id="trendVoltage" class="trend-canvas" width="420" height="120"></canvas></div>
+              <div class="trend-card"><div class="trend-title">Current (A)</div><canvas id="trendCurrent" class="trend-canvas" width="420" height="120"></canvas></div>
+              <div class="trend-card"><div class="trend-title">Power (W)</div><canvas id="trendPower" class="trend-canvas" width="420" height="120"></canvas></div>
+              <div class="trend-card"><div class="trend-title">RPM</div><canvas id="trendRpm" class="trend-canvas" width="420" height="120"></canvas></div>
+              <div class="trend-card trend-card-wide"><div class="trend-title">Temp 1 (°C)</div><canvas id="trendTemp1" class="trend-canvas" width="860" height="120"></canvas></div>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   </div>
@@ -228,3 +144,5 @@
   <script src="app.js"></script>
 </body>
 </html>
+
+

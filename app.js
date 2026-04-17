@@ -533,15 +533,15 @@ function updateTemperature(data) {
   
   // Temperature 1 (Motor)
   const t1 = parseFloat(temp.t1 || temp.sensor1 || temp.motor || 0);
-  elements.temp1.innerHTML = t1.toFixed(1) + '<span class="card-unit">Â°C</span>';
+  elements.temp1.innerHTML = t1.toFixed(1) + '<span class="card-unit">°C</span>';
   updateProgressBar(elements.temp1Bar, t1, 100, '#D85A30');
   
   // Temperature 2 (Ambient) - Weather API only (no ESP fallback)
   if (Number.isFinite(ambientTempFromAPI)) {
-    elements.temp2.innerHTML = ambientTempFromAPI.toFixed(1) + '<span class="card-unit">Â°C</span>';
+    elements.temp2.innerHTML = ambientTempFromAPI.toFixed(1) + '<span class="card-unit">°C</span>';
     updateProgressBar(elements.temp2Bar, ambientTempFromAPI, 50, '#378ADD');
   } else {
-    elements.temp2.innerHTML = '--<span class="card-unit">Â°C</span>';
+    elements.temp2.innerHTML = '--<span class="card-unit">°C</span>';
     updateProgressBar(elements.temp2Bar, 0, 50, '#378ADD');
   }
 
@@ -870,3 +870,4 @@ async function fetchAmbientTemperature() {
     }
   }
 }
+
