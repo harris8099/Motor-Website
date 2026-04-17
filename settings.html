@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maintenance Settings</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="container settings-container">
+    <div class="topbar">
+      <h1>Maintenance Settings</h1>
+      <div class="topbar-right">
+        <a class="top-link" href="index.html">Back To Dashboard</a>
+      </div>
+    </div>
+
+    <div class="settings-wrap">
+      <form id="maintenanceForm" class="settings-form">
+        <label class="settings-label">Next maintenance time</label>
+        <div class="settings-select-grid">
+          <select id="nextMaintenanceDay" class="settings-input" aria-label="Day"></select>
+          <select id="nextMaintenanceMonth" class="settings-input" aria-label="Month"></select>
+          <select id="nextMaintenanceYear" class="settings-input" aria-label="Year"></select>
+          <select id="nextMaintenanceHour" class="settings-input" aria-label="Hour"></select>
+          <select id="nextMaintenanceMinute" class="settings-input" aria-label="Minute"></select>
+        </div>
+
+        <label class="settings-label" for="totalLifeCycleHours">Total life cycle (hours)</label>
+        <input id="totalLifeCycleHours" class="settings-input" type="number" min="0" step="0.1" placeholder="e.g. 5000">
+
+        <label class="settings-label" for="maintenanceHoursLimit">Maintenance due at runtime (hours)</label>
+        <input id="maintenanceHoursLimit" class="settings-input" type="number" min="0" step="0.1" placeholder="e.g. 1000">
+
+        <label class="settings-label" for="ambientLocationMode">Ambient location mode</label>
+        <select id="ambientLocationMode" class="settings-input">
+          <option value="auto">Auto detect (IP based)</option>
+          <option value="manual">Manual city/state</option>
+        </select>
+        <p id="detectedLocationText" class="settings-status">Auto-detected location: --</p>
+
+        <div id="manualLocationFields" class="settings-location-grid">
+          <div>
+            <label class="settings-label" for="ambientState">State</label>
+            <select id="ambientState" class="settings-input">
+              <option value="">Select state</option>
+            </select>
+          </div>
+          <div>
+            <label class="settings-label" for="ambientCity">City</label>
+            <select id="ambientCity" class="settings-input">
+              <option value="">Select city</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button type="submit" class="settings-btn settings-btn-primary">Save</button>
+          <button type="button" id="clearBtn" class="settings-btn">Clear</button>
+        </div>
+        <p id="saveStatus" class="settings-status">Edit values and click Save.</p>
+      </form>
+    </div>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

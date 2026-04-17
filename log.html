@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Data Logs</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <h1>ESP32 Data Logs</h1>
+      <div class="topbar-right">
+        <a class="top-link" href="index.html">Dashboard</a>
+        <a class="top-link" href="settings.html">Maintenance Settings</a>
+        <span class="status-indicator">
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-txt" id="statusText">Connecting...</span>
+        </span>
+        <span class="timestamp" id="timestamp">--:--</span>
+        <span class="date" id="date">--/--/----</span>
+      </div>
+    </div>
+
+    <div class="dashboard-main">
+      <div class="dashboard-col">
+        <section class="dashboard-panel">
+          <div class="section-title">Data log</div>
+          <div class="log-wrap">
+            <div class="log-inner">
+              <table class="log-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>V (V)</th>
+                    <th>A (A)</th>
+                    <th>W (W)</th>
+                    <th>T1 (°C)</th>
+                    <th>T2 (°C)</th>
+                    <th>RPM</th>
+                  </tr>
+                </thead>
+                <tbody id="logBody">
+                  <tr><td colspan="7" class="no-data">No data available</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="log.js"></script>
+</body>
+</html>
