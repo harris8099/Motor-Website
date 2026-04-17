@@ -7,6 +7,36 @@ const CONFIG = {
 };
 const MAINTENANCE_CONFIG_KEY = 'maintenanceConfig';
 const AMBIENT_AUTO_LOCATION_KEY = 'ambientAutoLocationLabel';
+const THEME_KEY = 'appTheme';
+
+// Theme Management
+function initializeTheme() {
+  const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+  setTheme(savedTheme);
+}
+
+function setTheme(theme) {
+  if (theme === 'light') {
+    document.body.classList.add('light-theme');
+  } else {
+    document.body.classList.remove('light-theme');
+  }
+  localStorage.setItem(THEME_KEY, theme);
+  updateThemeButtonIcon();
+}
+
+function toggleTheme() {
+  const isDarkMode = !document.body.classList.contains('light-theme');
+  setTheme(isDarkMode ? 'light' : 'dark');
+}
+
+function updateThemeButtonIcon() {
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    const isDarkMode = !document.body.classList.contains('light-theme');
+    themeBtn.textContent = isDarkMode ? '🌙' : '☀️';
+  }
+}
 
 // State
 let dataLog = [];
@@ -533,15 +563,15 @@ function updateTemperature(data) {
   
   // Temperature 1 (Motor)
   const t1 = parseFloat(temp.t1 || temp.sensor1 || temp.motor || 0);
-  elements.temp1.innerHTML = t1.toFixed(1) + '<span class="card-unit">�C</span>';
+  elements.temp1.innerHTML = t1.toFixed(1) + '<span class="card-unit">°C</span>';
   updateProgressBar(elements.temp1Bar, t1, 100, '#D85A30');
   
   // Temperature 2 (Ambient) - Weather API only (no ESP fallback)
   if (Number.isFinite(ambientTempFromAPI)) {
-    elements.temp2.innerHTML = ambientTempFromAPI.toFixed(1) + '<span class="card-unit">�C</span>';
+    elements.temp2.innerHTML = ambientTempFromAPI.toFixed(1) + '<span class="card-unit">°C</span>';
     updateProgressBar(elements.temp2Bar, ambientTempFromAPI, 50, '#378ADD');
   } else {
-    elements.temp2.innerHTML = '--<span class="card-unit">�C</span>';
+    elements.temp2.innerHTML = '--<span class="card-unit">°C</span>';
     updateProgressBar(elements.temp2Bar, 0, 50, '#378ADD');
   }
 
@@ -735,6 +765,38 @@ function setupTrendCharts() {
   window.addEventListener('resize', renderTrendCharts);
 }
 
+function setupStopButton() {
+  const stopButton = document.getElementById('stopMotorBtn');
+  if (!stopButton) return;
+
+  stopButton.addEventListener('click', async () => {
+    try {
+      stopButton.disabled = true;
+      stopButton.textContent = 'Stopping...';
+      
+      const response = await fetch('/motor/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to stop motor (${response.status})`);
+      }
+
+      // Refresh data immediately
+      await fetchSensorData();
+    } catch (error) {
+      console.error('Error stopping motor:', error);
+      alert('Failed to stop motor. Check if ESP32 is connected.');
+    } finally {
+      stopButton.disabled = false;
+      stopButton.textContent = 'STOP';
+    }
+  });
+}
+
 // Main Update Function
 function updateDashboard(data) {
   try {
@@ -779,8 +841,17 @@ async function fetchSensorData() {
 // Initialize
 function init() {
   console.log('ESP32 Dashboard initialized');
+  
+  // Initialize theme
+  initializeTheme();
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', toggleTheme);
+  }
+  
   setupFaultActionHandlers();
   setupTrendCharts();
+  setupStopButton();
   
   // Initial fetch
   fetchSensorData();
@@ -870,4 +941,3 @@ async function fetchAmbientTemperature() {
     }
   }
 }
-

@@ -9,16 +9,21 @@
 <body>
   <div class="container">
     <div class="topbar">
-      <h1>ESP32 Data Logs</h1>
-      <div class="topbar-right">
-        <a class="top-link" href="index.html">Dashboard</a>
+      <a class="topbar-title" href="index.html">ESP32 Motor Dashboard</a>
+      <div class="topbar-center">
+        <a class="top-link" href="index.html">Home</a>
+        <a class="top-link" href="log.html">Log</a>
         <a class="top-link" href="settings.html">Maintenance Settings</a>
+      </div>
+      <div class="topbar-right">
+        <button id="themeToggle" class="theme-toggle-btn" title="Toggle theme">🌙</button>
         <span class="status-indicator">
           <span class="status-dot" id="statusDot"></span>
           <span class="status-txt" id="statusText">Connecting...</span>
         </span>
-        <span class="timestamp" id="timestamp">--:--</span>
+        <span class="timestamp" id="timestamp">--:--:--</span>
         <span class="date" id="date">--/--/----</span>
+        <button id="stopMotorBtn" class="stop-btn-ribbon">STOP</button>
       </div>
     </div>
 

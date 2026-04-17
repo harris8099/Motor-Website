@@ -9,12 +9,24 @@
 <body>
   <div class="container settings-container">
     <div class="topbar">
-      <h1>Maintenance Settings</h1>
+      <a class="topbar-title" href="index.html">ESP32 Motor Dashboard</a>
+      <div class="topbar-center">
+        <a class="top-link" href="index.html">Home</a>
+        <a class="top-link" href="log.html">Log</a>
+        <a class="top-link" href="settings.html">Maintenance Settings</a>
+      </div>
       <div class="topbar-right">
-        <a class="top-link" href="index.html">Back To Dashboard</a>
+        <button id="themeToggle" class="theme-toggle-btn" title="Toggle theme">🌙</button>
+        <span class="status-indicator">
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-txt" id="statusText">Connecting...</span>
+        </span>
+        <span class="timestamp" id="timestamp">--:--:--</span>
+        <span class="date" id="date">--/--/----</span>
+        <button id="stopMotorBtn" class="stop-btn-ribbon">STOP</button>
       </div>
     </div>
-
+<!-- 
     <div class="settings-wrap">
       <form id="maintenanceForm" class="settings-form">
         <label class="settings-label">Next maintenance time</label>
@@ -59,10 +71,82 @@
           <button type="button" id="clearBtn" class="settings-btn">Clear</button>
         </div>
         <p id="saveStatus" class="settings-status">Edit values and click Save.</p>
-      </form>
+      </form> -->
+ 
+      <div class="settings-wrap">
+  <section class="settings-card">
+    <h2 class="settings-title">Motor Maintenance Configuration</h2>
+    <form id="maintenanceForm" class="settings-form">
+      <label class="settings-label">Next Maintenance Target Date</label>
+      <div class="settings-select-grid">
+        <select id="nextMaintenanceDay" class="settings-input" aria-label="Day"></select>
+        <select id="nextMaintenanceMonth" class="settings-input" aria-label="Month"></select>
+        <select id="nextMaintenanceYear" class="settings-input" aria-label="Year"></select>
+        <select id="nextMaintenanceHour" class="settings-input" aria-label="Hour"></select>
+        <select id="nextMaintenanceMinute" class="settings-input" aria-label="Minute"></select>
+      </div>
+
+      <label class="settings-label" for="totalLifeCycleHours">Total System Life Cycle (Hours)</label>
+      <input id="totalLifeCycleHours" class="settings-input" type="number" min="0" step="0.1" placeholder="e.g. 5000">
+
+      <label class="settings-label" for="maintenanceHoursLimit">Maintenance Interval (Runtime Hours)</label>
+      <input id="maintenanceHoursLimit" class="settings-input" type="number" min="0" step="0.1" placeholder="e.g. 1000">
+
+      <div class="settings-actions">
+        <button type="submit" class="settings-btn settings-btn-primary">Save Maintenance</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="settings-card">
+    <h2 class="settings-title">Ambient Temperature Settings</h2>
+    <form id="locationForm" class="settings-form">
+      <label class="settings-label" for="ambientLocationMode">Location Detection Mode</label>
+      <select id="ambientLocationMode" class="settings-input">
+        <option value="auto">Auto detect (IP based)</option>
+        <option value="manual">Manual city/state</option>
+      </select>
+      
+      <p id="detectedLocationText" class="settings-status">Auto-detected location: --</p>
+
+          <div id="manualLocationFields" class="settings-location-grid" style="display:none;">
+        <div>
+          <label for="ambientState">State</label>
+          <select id="ambientState" class="settings-input"></select>
+        </div>
+        <div>
+          <label for="ambientCity">City</label>
+          <select id="ambientCity" class="settings-input"></select>
+        </div>
+      </div>
+
+      <div id="manualLocationFields" class="settings-location-grid">
+        <div>
+          <label class="settings-label" for="ambientState">State</label>
+          <select id="ambientState" class="settings-input">
+            <option value="">Select state</option>
+          </select>
+        </div>
+        <div>
+          <label class="settings-label" for="ambientCity">City</label>
+          <select id="ambientCity" class="settings-input">
+            <option value="">Select city</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button type="submit" class="settings-btn settings-btn-primary">Update Location</button>
+        <button type="button" id="clearBtn" class="settings-btn">Clear All Settings</button>
+      </div>
+      <p id="saveStatus" class="settings-status">Status: Waiting for input...</p>
+    </form>
+  </section>
+</div>
     </div>
   </div>
 
+  <script src="app.js"></script>
   <script src="settings.js"></script>
 </body>
 </html>

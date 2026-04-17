@@ -1,6 +1,9 @@
+// Constants
 const MAINTENANCE_CONFIG_KEY = 'maintenanceConfig';
 const MAINTENANCE_CONFIG_ENDPOINT = '/maintenance/config';
 const AMBIENT_AUTO_LOCATION_KEY = 'ambientAutoLocationLabel';
+const THEME_KEY = 'appTheme';
+
 const STATE_CITY_OPTIONS = {
   'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur', 'Nellore', 'Tirupati'],
   'Delhi': ['New Delhi', 'North Delhi', 'South Delhi', 'East Delhi', 'West Delhi'],
@@ -18,8 +21,10 @@ const STATE_CITY_OPTIONS = {
   'West Bengal': ['Kolkata', 'Howrah', 'Durgapur', 'Siliguri', 'Asansol']
 };
 
+// DOM Elements
 const elements = {
   maintenanceForm: document.getElementById('maintenanceForm'),
+  locationForm: document.getElementById('locationForm'),
   nextMaintenanceDay: document.getElementById('nextMaintenanceDay'),
   nextMaintenanceMonth: document.getElementById('nextMaintenanceMonth'),
   nextMaintenanceYear: document.getElementById('nextMaintenanceYear'),
@@ -36,288 +41,206 @@ const elements = {
   saveStatus: document.getElementById('saveStatus')
 };
 
-function pad2(value) {
-  return String(value).padStart(2, '0');
+// --- Theme Management ---
+function initializeTheme() {
+  const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+  setTheme(savedTheme);
 }
 
-function fillSelect(selectElement, options, placeholder) {
-  if (!selectElement) return;
-  selectElement.innerHTML = `<option value="">${placeholder}</option>`;
-  options.forEach(({ value, label }) => {
-    const option = document.createElement('option');
-    option.value = String(value);
-    option.textContent = label;
-    selectElement.appendChild(option);
-  });
+function setTheme(theme) {
+  document.body.classList.toggle('light-theme', theme === 'light');
+  localStorage.setItem(THEME_KEY, theme);
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) themeBtn.textContent = theme === 'light' ? '☀️' : '🌙';
 }
 
-function initializeDateTimeDropdowns() {
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const years = [];
-  for (let year = currentYear; year <= currentYear + 10; year += 1) {
-    years.push({ value: year, label: String(year) });
-  }
-
-  const months = [];
-  for (let month = 1; month <= 12; month += 1) {
-    months.push({ value: month, label: pad2(month) });
-  }
-
-  const days = [];
-  for (let day = 1; day <= 31; day += 1) {
-    days.push({ value: day, label: pad2(day) });
-  }
-
-  const hours = [];
-  for (let hour = 0; hour <= 23; hour += 1) {
-    hours.push({ value: hour, label: pad2(hour) });
-  }
-
-  const minutes = [];
-  for (let minute = 0; minute <= 59; minute += 1) {
-    minutes.push({ value: minute, label: pad2(minute) });
-  }
-
-  fillSelect(elements.nextMaintenanceDay, days, 'Day');
-  fillSelect(elements.nextMaintenanceMonth, months, 'Month');
-  fillSelect(elements.nextMaintenanceYear, years, 'Year');
-  fillSelect(elements.nextMaintenanceHour, hours, 'Hour');
-  fillSelect(elements.nextMaintenanceMinute, minutes, 'Minute');
-}
+// --- Data Utilities ---
+function pad2(value) { return String(value).padStart(2, '0'); }
 
 function loadConfig() {
   try {
-    const rawConfig = localStorage.getItem(MAINTENANCE_CONFIG_KEY);
-    if (!rawConfig) {
-      return {};
-    }
-    const parsedConfig = JSON.parse(rawConfig);
-    return parsedConfig && typeof parsedConfig === 'object' ? parsedConfig : {};
-  } catch (error) {
-    console.warn('Unable to load maintenance settings:', error);
-    return {};
-  }
+    const raw = localStorage.getItem(MAINTENANCE_CONFIG_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
 }
 
 function saveConfig(config) {
   localStorage.setItem(MAINTENANCE_CONFIG_KEY, JSON.stringify(config));
 }
 
-async function pushConfigToEsp(config) {
-  const payload = {
-    nextMaintenanceTime: config.nextMaintenanceTime || null,
-    totalLifeCycleHours: config.totalLifeCycleHours,
-    maintenanceHoursLimit: config.maintenanceHoursLimit,
-    ambientLocationMode: config.ambientLocationMode || 'auto',
-    ambientState: config.ambientState || '',
-    ambientCity: config.ambientCity || '',
-    totalLifeCycleSeconds:
-      Number.isFinite(config.totalLifeCycleHours) ? Math.round(config.totalLifeCycleHours * 3600) : null,
-    maintenanceHoursLimitSeconds:
-      Number.isFinite(config.maintenanceHoursLimit) ? Math.round(config.maintenanceHoursLimit * 3600) : null
+// --- Dropdown Initialization ---
+function initializeDateTimeDropdowns() {
+  const now = new Date();
+  const fill = (el, start, end) => {
+    if (!el) return;
+    el.innerHTML = '<option value="">--</option>';
+    for (let i = start; i <= end; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = pad2(i);
+      el.appendChild(opt);
+    }
   };
+  fill(elements.nextMaintenanceDay, 1, 31);
+  fill(elements.nextMaintenanceMonth, 1, 12);
+  fill(elements.nextMaintenanceYear, now.getFullYear(), now.getFullYear() + 5);
+  fill(elements.nextMaintenanceHour, 0, 23);
+  fill(elements.nextMaintenanceMinute, 0, 59);
+}
 
-  const response = await fetch(MAINTENANCE_CONFIG_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(payload)
+function updateCityDropdown(stateName, selectedCity = "") {
+  if (!elements.ambientCity) return;
+  const cities = STATE_CITY_OPTIONS[stateName] || [];
+  elements.ambientCity.innerHTML = '<option value="">Select city</option>';
+  cities.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    elements.ambientCity.appendChild(opt);
   });
-
-  if (!response.ok) {
-    throw new Error(`Maintenance config push failed (${response.status})`);
-  }
-}
-
-function showStatus(message) {
-  if (elements.saveStatus) {
-    elements.saveStatus.textContent = message;
-  }
-}
-
-function setDateTimeDropdownValue(dateTimeValue) {
-  if (!dateTimeValue) {
-    elements.nextMaintenanceDay.value = '';
-    elements.nextMaintenanceMonth.value = '';
-    elements.nextMaintenanceYear.value = '';
-    elements.nextMaintenanceHour.value = '';
-    elements.nextMaintenanceMinute.value = '';
-    return;
-  }
-
-  const normalized = dateTimeValue.replace(' ', 'T');
-  const date = new Date(normalized);
-  if (Number.isNaN(date.getTime())) {
-    return;
-  }
-
-  elements.nextMaintenanceDay.value = String(date.getDate());
-  elements.nextMaintenanceMonth.value = String(date.getMonth() + 1);
-  elements.nextMaintenanceYear.value = String(date.getFullYear());
-  elements.nextMaintenanceHour.value = String(date.getHours());
-  elements.nextMaintenanceMinute.value = String(date.getMinutes());
-}
-
-function getDateTimeFromDropdowns() {
-  const day = elements.nextMaintenanceDay.value;
-  const month = elements.nextMaintenanceMonth.value;
-  const year = elements.nextMaintenanceYear.value;
-  const hour = elements.nextMaintenanceHour.value;
-  const minute = elements.nextMaintenanceMinute.value;
-
-  if (!day || !month || !year || !hour || !minute) {
-    return '';
-  }
-
-  return `${year}-${pad2(month)}-${pad2(day)}T${pad2(hour)}:${pad2(minute)}`;
-}
-
-function setOptions(selectElement, values, placeholder) {
-  if (!selectElement) return;
-  selectElement.innerHTML = '';
-  const placeholderOption = document.createElement('option');
-  placeholderOption.value = '';
-  placeholderOption.textContent = placeholder;
-  selectElement.appendChild(placeholderOption);
-
-  values.forEach((value) => {
-    const option = document.createElement('option');
-    option.value = value;
-    option.textContent = value;
-    selectElement.appendChild(option);
-  });
-}
-
-function ensureOption(selectElement, value) {
-  if (!selectElement || !value) return;
-  const exists = Array.from(selectElement.options).some((option) => option.value === value);
-  if (!exists) {
-    const customOption = document.createElement('option');
-    customOption.value = value;
-    customOption.textContent = value;
-    selectElement.appendChild(customOption);
-  }
-}
-
-function populateStateDropdown(selectedState) {
-  const states = Object.keys(STATE_CITY_OPTIONS).sort((a, b) => a.localeCompare(b));
-  setOptions(elements.ambientState, states, 'Select state');
-  if (selectedState) {
-    ensureOption(elements.ambientState, selectedState);
-    elements.ambientState.value = selectedState;
-  }
-}
-
-function populateCityDropdown(state, selectedCity) {
-  const cities = STATE_CITY_OPTIONS[state] || [];
-  setOptions(elements.ambientCity, cities, 'Select city');
-  if (selectedCity) {
-    ensureOption(elements.ambientCity, selectedCity);
-    elements.ambientCity.value = selectedCity;
-  }
+  if (selectedCity) elements.ambientCity.value = selectedCity;
 }
 
 function initializeLocationDropdowns() {
-  populateStateDropdown('');
-  populateCityDropdown('', '');
+  if (!elements.ambientState) return;
+  const states = Object.keys(STATE_CITY_OPTIONS).sort();
+  elements.ambientState.innerHTML = '<option value="">Select state</option>';
+  states.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = s;
+    elements.ambientState.appendChild(opt);
+  });
 
-  elements.ambientState.addEventListener('change', () => {
-    populateCityDropdown(elements.ambientState.value, '');
+  elements.ambientState.addEventListener('change', (e) => {
+    updateCityDropdown(e.target.value);
   });
 }
 
-function updateDetectedLocationLabel() {
-  if (!elements.detectedLocationText) return;
-  const autoLocationLabel = localStorage.getItem(AMBIENT_AUTO_LOCATION_KEY) || '--';
-  elements.detectedLocationText.textContent = `Auto-detected location: ${autoLocationLabel}`;
-}
-
+// --- UI Logic ---
 function applyLocationModeUI() {
-  const mode = elements.ambientLocationMode.value || 'auto';
-  const showManual = mode === 'manual';
-  elements.manualLocationFields.classList.toggle('is-hidden', !showManual);
+  const isManual = elements.ambientLocationMode.value === 'manual';
+  if (elements.manualLocationFields) {
+    elements.manualLocationFields.style.display = isManual ? 'grid' : 'none';
+  }
 }
 
 function fillForm() {
   const config = loadConfig();
-  setDateTimeDropdownValue(config.nextMaintenanceTime || '');
-  elements.totalLifeCycleHours.value = config.totalLifeCycleHours ?? '';
-  elements.maintenanceHoursLimit.value = config.maintenanceHoursLimit ?? '';
+  
+  if (config.nextMaintenanceTime) {
+    const d = new Date(config.nextMaintenanceTime);
+    if (!isNaN(d.getTime())) {
+      elements.nextMaintenanceDay.value = d.getDate();
+      elements.nextMaintenanceMonth.value = d.getMonth() + 1;
+      elements.nextMaintenanceYear.value = d.getFullYear();
+      elements.nextMaintenanceHour.value = d.getHours();
+      elements.nextMaintenanceMinute.value = d.getMinutes();
+    }
+  }
+  elements.totalLifeCycleHours.value = config.totalLifeCycleHours || '';
+  elements.maintenanceHoursLimit.value = config.maintenanceHoursLimit || '';
   elements.ambientLocationMode.value = config.ambientLocationMode || 'auto';
-  populateStateDropdown(config.ambientState || '');
-  populateCityDropdown(config.ambientState || '', config.ambientCity || '');
+  
+  if (config.ambientState) {
+    elements.ambientState.value = config.ambientState;
+    updateCityDropdown(config.ambientState, config.ambientCity);
+  }
+  
   applyLocationModeUI();
-  updateDetectedLocationLabel();
+  const autoLoc = localStorage.getItem(AMBIENT_AUTO_LOCATION_KEY) || '--';
+  elements.detectedLocationText.textContent = `Auto-detected location: ${autoLoc}`;
 }
 
-async function handleSave(event) {
-  event.preventDefault();
-
-  const nextMaintenanceTime = getDateTimeFromDropdowns();
-  const totalLifeCycleHoursInput = elements.totalLifeCycleHours.value;
-  const parsedHours = totalLifeCycleHoursInput === '' ? null : Number(totalLifeCycleHoursInput);
-  const totalLifeCycleHours = Number.isFinite(parsedHours) && parsedHours >= 0 ? parsedHours : null;
-  const maintenanceHoursLimitInput = elements.maintenanceHoursLimit.value;
-  const parsedMaintenanceLimit = maintenanceHoursLimitInput === '' ? null : Number(maintenanceHoursLimitInput);
-  const maintenanceHoursLimit = Number.isFinite(parsedMaintenanceLimit) && parsedMaintenanceLimit >= 0 ? parsedMaintenanceLimit : null;
-
-  const config = {
-    nextMaintenanceTime,
-    totalLifeCycleHours,
-    maintenanceHoursLimit,
-    ambientLocationMode: elements.ambientLocationMode.value || 'auto',
-    ambientState: (elements.ambientState.value || '').trim(),
-    ambientCity: (elements.ambientCity.value || '').trim()
+// --- API Sync ---
+async function pushConfigToEsp(config) {
+  const payload = {
+    ...config,
+    totalLifeCycleSeconds: config.totalLifeCycleHours ? Math.round(config.totalLifeCycleHours * 3600) : null,
+    maintenanceHoursLimitSeconds: config.maintenanceHoursLimit ? Math.round(config.maintenanceHoursLimit * 3600) : null
   };
 
+  const res = await fetch(MAINTENANCE_CONFIG_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('ESP Sync Failed');
+}
+
+// --- Event Handlers ---
+async function handleMaintenanceSave(e) {
+  e.preventDefault();
+  const config = loadConfig();
+  
+  const d = elements.nextMaintenanceDay.value;
+  const m = elements.nextMaintenanceMonth.value;
+  const y = elements.nextMaintenanceYear.value;
+  const h = elements.nextMaintenanceHour.value;
+  const mi = elements.nextMaintenanceMinute.value;
+
+  if (y && m && d) {
+    config.nextMaintenanceTime = `${y}-${pad2(m)}-${pad2(d)}T${pad2(h)}:${pad2(mi)}`;
+  }
+
+  config.totalLifeCycleHours = parseFloat(elements.totalLifeCycleHours.value) || null;
+  config.maintenanceHoursLimit = parseFloat(elements.maintenanceHoursLimit.value) || null;
+
+  try {
+    saveConfig(config);
+    await pushConfigToEsp(config);
+    elements.saveStatus.textContent = "Maintenance settings saved & synced!";
+    elements.saveStatus.style.color = "#1D9E75";
+  } catch (err) {
+    elements.saveStatus.textContent = "Saved locally, but ESP is offline.";
+    elements.saveStatus.style.color = "#EF9F27";
+  }
+}
+
+async function handleLocationSave(e) {
+  e.preventDefault();
+  const config = loadConfig();
+
+  config.ambientLocationMode = elements.ambientLocationMode.value;
+  config.ambientState = elements.ambientState.value;
+  config.ambientCity = elements.ambientCity.value;
+
   if (config.ambientLocationMode === 'manual' && (!config.ambientState || !config.ambientCity)) {
-    showStatus('Manual mode needs both State and City.');
+    elements.saveStatus.textContent = "Error: Please select State and City.";
+    elements.saveStatus.style.color = "#D85A30";
     return;
   }
 
-  saveConfig(config);
-
   try {
+    saveConfig(config);
     await pushConfigToEsp(config);
-    showStatus('Saved and sent to ESP successfully.');
-  } catch (error) {
-    console.error('Failed to push maintenance config:', error);
-    showStatus('Saved locally, but failed to send to ESP. Check endpoint /maintenance/config.');
-  }
-}
-
-async function handleClear() {
-  localStorage.removeItem(MAINTENANCE_CONFIG_KEY);
-  fillForm();
-  try {
-    await pushConfigToEsp({
-      nextMaintenanceTime: null,
-      totalLifeCycleHours: null,
-      maintenanceHoursLimit: null,
-      ambientLocationMode: 'auto',
-      ambientState: '',
-      ambientCity: ''
-    });
-    showStatus('Settings cleared and sent to ESP.');
-  } catch (error) {
-    console.error('Failed to clear maintenance config on ESP:', error);
-    showStatus('Settings cleared locally, but failed to notify ESP.');
+    elements.saveStatus.textContent = "Location updated successfully!";
+    elements.saveStatus.style.color = "#1D9E75";
+  } catch (err) {
+    elements.saveStatus.textContent = "Location saved (ESP Sync failed).";
   }
 }
 
 function init() {
+  initializeTheme();
+  document.getElementById('themeToggle')?.addEventListener('click', () => {
+    const newTheme = document.body.classList.contains('light-theme') ? 'dark' : 'light';
+    setTheme(newTheme);
+  });
+
   initializeDateTimeDropdowns();
   initializeLocationDropdowns();
   fillForm();
-  elements.maintenanceForm.addEventListener('submit', handleSave);
-  elements.clearBtn.addEventListener('click', handleClear);
-  elements.ambientLocationMode.addEventListener('change', applyLocationModeUI);
+
+  elements.maintenanceForm?.addEventListener('submit', handleMaintenanceSave);
+  elements.locationForm?.addEventListener('submit', handleLocationSave);
+  elements.clearBtn?.addEventListener('click', () => {
+    if(confirm("Clear all settings?")) {
+      localStorage.removeItem(MAINTENANCE_CONFIG_KEY);
+      location.reload();
+    }
+  });
+  elements.ambientLocationMode?.addEventListener('change', applyLocationModeUI);
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+document.addEventListener('DOMContentLoaded', init);

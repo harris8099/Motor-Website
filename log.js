@@ -3,6 +3,36 @@ const CONFIG = {
   updateInterval: 2000,
   maxLogEntries: 80
 };
+const THEME_KEY = 'appTheme';
+
+// Theme Management
+function initializeTheme() {
+  const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+  setTheme(savedTheme);
+}
+
+function setTheme(theme) {
+  if (theme === 'light') {
+    document.body.classList.add('light-theme');
+  } else {
+    document.body.classList.remove('light-theme');
+  }
+  localStorage.setItem(THEME_KEY, theme);
+  updateThemeButtonIcon();
+}
+
+function toggleTheme() {
+  const isDarkMode = !document.body.classList.contains('light-theme');
+  setTheme(isDarkMode ? 'light' : 'dark');
+}
+
+function updateThemeButtonIcon() {
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    const isDarkMode = !document.body.classList.contains('light-theme');
+    themeBtn.textContent = isDarkMode ? '🌙' : '☀️';
+  }
+}
 
 let dataLog = [];
 
@@ -92,6 +122,13 @@ async function fetchSensorData() {
 }
 
 function init() {
+  // Initialize theme
+  initializeTheme();
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', toggleTheme);
+  }
+  
   updateHeaderClock();
   fetchSensorData();
   setInterval(fetchSensorData, CONFIG.updateInterval);
