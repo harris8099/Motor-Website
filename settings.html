@@ -14,6 +14,9 @@
         <a class="top-link" href="index.html">Home</a>
         <a class="top-link" href="log.html">Log</a>
         <a class="top-link" href="settings.html">Maintenance Settings</a>
+        <a class="top-link" href="wifi.html">WiFi</a>
+        <a class="top-link" href="console.html">Console</a>
+        <a class="top-link" href="about.html">About</a>
       </div>
       <div class="topbar-right">
         <button id="themeToggle" class="theme-toggle-btn" title="Toggle theme">🌙</button>
@@ -26,126 +29,198 @@
         <button id="stopMotorBtn" class="stop-btn-ribbon">STOP</button>
       </div>
     </div>
-<!-- 
+
     <div class="settings-wrap">
-      <form id="maintenanceForm" class="settings-form">
-        <label class="settings-label">Next maintenance time</label>
-        <div class="settings-select-grid">
-          <select id="nextMaintenanceDay" class="settings-input" aria-label="Day"></select>
-          <select id="nextMaintenanceMonth" class="settings-input" aria-label="Month"></select>
-          <select id="nextMaintenanceYear" class="settings-input" aria-label="Year"></select>
-          <select id="nextMaintenanceHour" class="settings-input" aria-label="Hour"></select>
-          <select id="nextMaintenanceMinute" class="settings-input" aria-label="Minute"></select>
-        </div>
 
-        <label class="settings-label" for="totalLifeCycleHours">Total life cycle (hours)</label>
-        <input id="totalLifeCycleHours" class="settings-input" type="number" min="0" step="0.1" placeholder="e.g. 5000">
-
-        <label class="settings-label" for="maintenanceHoursLimit">Maintenance due at runtime (hours)</label>
-        <input id="maintenanceHoursLimit" class="settings-input" type="number" min="0" step="0.1" placeholder="e.g. 1000">
-
-        <label class="settings-label" for="ambientLocationMode">Ambient location mode</label>
-        <select id="ambientLocationMode" class="settings-input">
-          <option value="auto">Auto detect (IP based)</option>
-          <option value="manual">Manual city/state</option>
-        </select>
-        <p id="detectedLocationText" class="settings-status">Auto-detected location: --</p>
-
-        <div id="manualLocationFields" class="settings-location-grid">
+      <section class="settings-card">
+        <h2 class="settings-title">Motor Maintenance Configuration</h2>
+        <form id="maintenanceForm" class="settings-form">
           <div>
-            <label class="settings-label" for="ambientState">State</label>
-            <select id="ambientState" class="settings-input">
-              <option value="">Select state</option>
-            </select>
+            <label class="settings-label">Next Maintenance Target Date</label>
+            <div class="settings-select-grid">
+              <select id="nextMaintenanceDay" class="settings-input" aria-label="Day"></select>
+              <select id="nextMaintenanceMonth" class="settings-input" aria-label="Month"></select>
+              <select id="nextMaintenanceYear" class="settings-input" aria-label="Year"></select>
+              <select id="nextMaintenanceHour" class="settings-input" aria-label="Hour"></select>
+              <select id="nextMaintenanceMinute" class="settings-input" aria-label="Minute"></select>
+            </div>
           </div>
           <div>
-            <label class="settings-label" for="ambientCity">City</label>
-            <select id="ambientCity" class="settings-input">
-              <option value="">Select city</option>
-            </select>
+            <label class="settings-label" for="totalLifeCycleHours">Total System Life Cycle (Hours)</label>
+            <input id="totalLifeCycleHours" class="settings-input" type="number" min="0" step="0.1" placeholder="e.g. 5000">
           </div>
-        </div>
+          <div>
+            <label class="settings-label" for="maintenanceHoursLimit">Maintenance Interval (Runtime Hours)</label>
+            <input id="maintenanceHoursLimit" class="settings-input" type="number" min="0" step="0.1" placeholder="e.g. 1000">
+          </div>
+          <div>
+            <label class="settings-label" for="uptimeHours">Current Runtime (Hours)</label>
+            <input id="uptimeHours" class="settings-input" type="number" min="0" step="0.1" placeholder="e.g. 120.5">
+          </div>
+          <div class="settings-actions">
+            <button type="submit" class="settings-btn settings-btn-primary">Save Maintenance</button>
+            <button type="button" id="clearMaintenanceBtn" class="settings-btn">Clear Maintenance Form</button>
+            <button type="button" id="clearNvsBtn" class="settings-btn">Clear ESP NVS</button>
+          </div>
+        </form>
+      </section>
 
-        <div class="settings-actions">
-          <button type="submit" class="settings-btn settings-btn-primary">Save</button>
-          <button type="button" id="clearBtn" class="settings-btn">Clear</button>
-        </div>
-        <p id="saveStatus" class="settings-status">Edit values and click Save.</p>
-      </form> -->
- 
-      <div class="settings-wrap">
-  <section class="settings-card">
-    <h2 class="settings-title">Motor Maintenance Configuration</h2>
-    <form id="maintenanceForm" class="settings-form">
-      <label class="settings-label">Next Maintenance Target Date</label>
-      <div class="settings-select-grid">
-        <select id="nextMaintenanceDay" class="settings-input" aria-label="Day"></select>
-        <select id="nextMaintenanceMonth" class="settings-input" aria-label="Month"></select>
-        <select id="nextMaintenanceYear" class="settings-input" aria-label="Year"></select>
-        <select id="nextMaintenanceHour" class="settings-input" aria-label="Hour"></select>
-        <select id="nextMaintenanceMinute" class="settings-input" aria-label="Minute"></select>
-      </div>
-
-      <label class="settings-label" for="totalLifeCycleHours">Total System Life Cycle (Hours)</label>
-      <input id="totalLifeCycleHours" class="settings-input" type="number" min="0" step="0.1" placeholder="e.g. 5000">
-
-      <label class="settings-label" for="maintenanceHoursLimit">Maintenance Interval (Runtime Hours)</label>
-      <input id="maintenanceHoursLimit" class="settings-input" type="number" min="0" step="0.1" placeholder="e.g. 1000">
-
-      <div class="settings-actions">
-        <button type="submit" class="settings-btn settings-btn-primary">Save Maintenance</button>
-      </div>
-    </form>
-  </section>
-
-  <section class="settings-card">
-    <h2 class="settings-title">Ambient Temperature Settings</h2>
-    <form id="locationForm" class="settings-form">
-      <label class="settings-label" for="ambientLocationMode">Location Detection Mode</label>
-      <select id="ambientLocationMode" class="settings-input">
-        <option value="auto">Auto detect (IP based)</option>
-        <option value="manual">Manual city/state</option>
-      </select>
-      
-      <p id="detectedLocationText" class="settings-status">Auto-detected location: --</p>
-
+      <section class="settings-card">
+        <h2 class="settings-title">Ambient Temperature Settings</h2>
+        <form id="locationForm" class="settings-form">
+          <div>
+            <label class="settings-label" for="ambientLocationMode">Location Detection Mode</label>
+            <select id="ambientLocationMode" class="settings-input">
+              <option value="auto">Auto detect (IP based)</option>
+              <option value="manual">Manual city/state</option>
+            </select>
+            <p id="detectedLocationText" class="settings-status" style="margin-top:6px;">Auto-detected location: --</p>
+          </div>
           <div id="manualLocationFields" class="settings-location-grid" style="display:none;">
-        <div>
-          <label for="ambientState">State</label>
-          <select id="ambientState" class="settings-input"></select>
-        </div>
-        <div>
-          <label for="ambientCity">City</label>
-          <select id="ambientCity" class="settings-input"></select>
-        </div>
-      </div>
+            <div>
+              <label class="settings-label" for="ambientState">State</label>
+              <select id="ambientState" class="settings-input">
+                <option value="">Select state</option>
+              </select>
+            </div>
+            <div>
+              <label class="settings-label" for="ambientCity">City</label>
+              <select id="ambientCity" class="settings-input">
+                <option value="">Select city</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-actions">
+            <button type="submit" class="settings-btn settings-btn-primary">Update Location</button>
+            <button type="button" id="clearLocationBtn" class="settings-btn">Clear Location Form</button>
+          </div>
+          <p id="saveStatus" class="settings-status">Status: Waiting for input...</p>
+        </form>
+      </section>
 
-      <div id="manualLocationFields" class="settings-location-grid">
-        <div>
-          <label class="settings-label" for="ambientState">State</label>
-          <select id="ambientState" class="settings-input">
-            <option value="">Select state</option>
-          </select>
-        </div>
-        <div>
-          <label class="settings-label" for="ambientCity">City</label>
-          <select id="ambientCity" class="settings-input">
-            <option value="">Select city</option>
-          </select>
-        </div>
-      </div>
+      <section class="settings-card">
+        <h2 class="settings-title">Railway Data Relay</h2>
+        <form id="railwayForm" class="settings-form">
+          <div>
+            <label class="settings-label" for="railwayEnabled">Enable Railway Relay</label>
+            <select id="railwayEnabled" class="settings-input">
+              <option value="false">Disabled</option>
+              <option value="true">Enabled</option>
+            </select>
+          </div>
+          <div>
+            <label class="settings-label" for="railwayEndpoint">Railway Ingest Endpoint URL</label>
+            <input id="railwayEndpoint" class="settings-input" type="url" placeholder="https://your-service.up.railway.app/ingest">
+          </div>
+          <div>
+            <label class="settings-label" for="railwayApiKey">API Key (optional)</label>
+            <input id="railwayApiKey" class="settings-input" type="text" placeholder="x-api-key or bearer token">
+          </div>
+          <div>
+            <label class="settings-label" for="railwayDeviceId">Device ID</label>
+            <input id="railwayDeviceId" class="settings-input" type="text" maxlength="64" placeholder="esp32-motor-01">
+          </div>
+          <div>
+            <label class="settings-label" for="railwayIntervalSeconds">Relay Interval (seconds)</label>
+            <input id="railwayIntervalSeconds" class="settings-input" type="number" min="2" max="3600" step="1" placeholder="10">
+          </div>
+          <div class="settings-actions">
+            <button type="submit" class="settings-btn settings-btn-primary">Save Railway Relay</button>
+            <button type="button" id="clearRailwayBtn" class="settings-btn">Clear Railway Relay</button>
+          </div>
+        </form>
+      </section>
 
-      <div class="settings-actions">
-        <button type="submit" class="settings-btn settings-btn-primary">Update Location</button>
-        <button type="button" id="clearBtn" class="settings-btn">Clear All Settings</button>
-      </div>
-      <p id="saveStatus" class="settings-status">Status: Waiting for input...</p>
-    </form>
-  </section>
-</div>
+      <section class="settings-card">
+        <h2 class="settings-title">MQTT Relay</h2>
+        <form id="mqttForm" class="settings-form">
+          <div>
+            <label class="settings-label" for="mqttEnabled">Enable MQTT Relay</label>
+            <select id="mqttEnabled" class="settings-input">
+              <option value="false">Disabled</option>
+              <option value="true">Enabled</option>
+            </select>
+          </div>
+          <div>
+            <label class="settings-label" for="mqttBrokerUri">Broker URI</label>
+            <input id="mqttBrokerUri" class="settings-input" type="text" placeholder="mqtt://broker.hivemq.com:1883">
+          </div>
+          <div>
+            <label class="settings-label" for="mqttTopic">Topic</label>
+            <input id="mqttTopic" class="settings-input" type="text" placeholder="esp32/motor/data">
+          </div>
+          <div>
+            <label class="settings-label" for="mqttClientId">Client ID</label>
+            <input id="mqttClientId" class="settings-input" type="text" maxlength="64" placeholder="esp32-motor-01">
+          </div>
+          <div class="settings-location-grid">
+            <div>
+              <label class="settings-label" for="mqttUsername">Username (optional)</label>
+              <input id="mqttUsername" class="settings-input" type="text" maxlength="64" placeholder="mqtt user">
+            </div>
+            <div>
+              <label class="settings-label" for="mqttPassword">Password (optional)</label>
+              <input id="mqttPassword" class="settings-input" type="password" maxlength="64" placeholder="mqtt password">
+            </div>
+          </div>
+          <div class="settings-location-grid">
+            <div>
+              <label class="settings-label" for="mqttIntervalSeconds">Publish Interval (seconds)</label>
+              <input id="mqttIntervalSeconds" class="settings-input" type="number" min="2" max="3600" step="1" placeholder="10">
+            </div>
+            <div>
+              <label class="settings-label" for="mqttQos">QoS</label>
+              <select id="mqttQos" class="settings-input">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="settings-label" for="mqttRetain">Retain Messages</label>
+            <select id="mqttRetain" class="settings-input">
+              <option value="false">No</option>
+              <option value="true">Yes</option>
+            </select>
+          </div>
+          <div class="settings-actions">
+            <button type="submit" class="settings-btn settings-btn-primary">Save MQTT Relay</button>
+            <button type="button" id="clearMqttBtn" class="settings-btn">Clear MQTT Relay</button>
+            <button type="button" id="refreshMqttStatusBtn" class="settings-btn">Refresh MQTT Status</button>
+          </div>
+          <div class="wifi-status-grid">
+            <div class="wifi-kv">
+              <span class="wifi-k">MQTT Enabled</span>
+              <span class="wifi-v" id="mqttStatusEnabled">--</span>
+            </div>
+            <div class="wifi-kv">
+              <span class="wifi-k">MQTT Connected</span>
+              <span class="wifi-v" id="mqttStatusConnected">--</span>
+            </div>
+            <div class="wifi-kv">
+              <span class="wifi-k">Last Publish (ms)</span>
+              <span class="wifi-v" id="mqttStatusLastPublish">--</span>
+            </div>
+            <div class="wifi-kv">
+              <span class="wifi-k">Last Error (ms)</span>
+              <span class="wifi-v" id="mqttStatusLastErrorMs">--</span>
+            </div>
+            <div class="wifi-kv">
+              <span class="wifi-k">Publish Success Count</span>
+              <span class="wifi-v" id="mqttStatusSuccessCount">0</span>
+            </div>
+            <div class="wifi-kv">
+              <span class="wifi-k">Publish Fail Count</span>
+              <span class="wifi-v" id="mqttStatusFailCount">0</span>
+            </div>
+          </div>
+          <p id="mqttStatusLastErrorText" class="settings-status">Last error: --</p>
+        </form>
+      </section>
+
     </div>
   </div>
-
   <script src="app.js"></script>
   <script src="settings.js"></script>
 </body>

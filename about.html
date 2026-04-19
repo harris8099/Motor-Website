@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About & Credits</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="container settings-container">
+    <div class="topbar">
+      <a class="topbar-title" href="index.html">ESP32 Motor Dashboard</a>
+      <div class="topbar-center">
+        <a class="top-link" href="index.html">Home</a>
+        <a class="top-link" href="log.html">Log</a>
+        <a class="top-link" href="settings.html">Maintenance Settings</a>
+        <a class="top-link" href="wifi.html">WiFi</a>
+        <a class="top-link" href="console.html">Console</a>
+        <a class="top-link" href="about.html">About</a>
+      </div>
+      <div class="topbar-right">
+        <button id="themeToggle" class="theme-toggle-btn" title="Toggle theme">🌙</button>
+        <span class="status-indicator">
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-txt" id="statusText">Connected</span>
+        </span>
+        <span class="timestamp" id="timestamp">--:--:--</span>
+        <span class="date" id="date">--/--/----</span>
+      </div>
+    </div>
+
+    <div class="settings-wrap">
+      <section class="settings-card">
+        <h2 class="settings-title">About This Project</h2>
+        <div class="settings-form">
+          <p class="settings-status">
+            ESP32-based smart motor monitoring dashboard with web control, WiFi setup, cloud relay, MQTT, logs, and TFT display UI.
+          </p>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <h2 class="settings-title">Credits & Links</h2>
+        <div class="settings-form">
+          <div class="wifi-status-grid">
+            <div class="wifi-kv">
+              <span class="wifi-k">LinkedIn</span>
+              <span class="wifi-v"><a class="top-link" href="https://www.linkedin.com/in/harshil-suthar-942307249/" target="_blank" rel="noopener noreferrer">Open LinkedIn</a></span>
+            </div>
+            <div class="wifi-kv">
+              <span class="wifi-k">GitHub</span>
+              <span class="wifi-v"><a class="top-link" href="https://github.com/harris8099" target="_blank" rel="noopener noreferrer">Open GitHub</a></span>
+            </div>
+            <div class="wifi-kv">
+              <span class="wifi-k">Portfolio</span>
+              <span class="wifi-v"><a class="top-link" href="https://harris8099.github.io/Portfolio-2.0/" target="_blank" rel="noopener noreferrer">Open Portfolio</a></span>
+            </div>
+          </div>
+          <!-- <p class="settings-status">
+            Update these URLs in <code>webpage/about.html</code> with your real profile links.
+          </p> -->
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const THEME_KEY = 'appTheme';
+      const themeBtn = document.getElementById('themeToggle');
+      const timestampEl = document.getElementById('timestamp');
+      const dateEl = document.getElementById('date');
+
+      function setTheme(theme) {
+        document.body.classList.toggle('light-theme', theme === 'light');
+        localStorage.setItem(THEME_KEY, theme);
+        if (themeBtn) themeBtn.textContent = theme === 'light' ? '☀️' : '🌙';
+      }
+
+      function tick() {
+        const now = new Date();
+        if (timestampEl) timestampEl.textContent = now.toLocaleTimeString();
+        if (dateEl) dateEl.textContent = now.toLocaleDateString();
+      }
+
+      setTheme(localStorage.getItem(THEME_KEY) || 'dark');
+      if (themeBtn) {
+        themeBtn.addEventListener('click', function () {
+          const next = document.body.classList.contains('light-theme') ? 'dark' : 'light';
+          setTheme(next);
+        });
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
+  </script>
+</body>
+</html>

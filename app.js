@@ -7,6 +7,8 @@ const CONFIG = {
 };
 const MAINTENANCE_CONFIG_KEY = 'maintenanceConfig';
 const AMBIENT_AUTO_LOCATION_KEY = 'ambientAutoLocationLabel';
+const AMBIENT_LOCATION_UPDATED_AT_KEY = 'ambientLocationUpdatedAt';
+const RAILWAY_RELAY_CONFIG_KEY = 'railwayRelayConfig';
 const THEME_KEY = 'appTheme';
 
 // Theme Management
@@ -42,6 +44,11 @@ function updateThemeButtonIcon() {
 let dataLog = [];
 let isConnected = false;
 let isFaultActionInProgress = false;
+const railwayRelayState = {
+  inFlight: false,
+  lastSentAtMs: 0,
+  lastErrorAtMs: 0
+};
 const TREND_POINTS = 48;
 const trendSeries = {
   voltage: [],
@@ -313,6 +320,30 @@ function loadMaintenanceConfig() {
   } catch (error) {
     console.warn('Unable to read maintenance config:', error);
     return {};
+  }
+}
+
+function loadRailwayRelayConfig() {
+  try {
+    const rawConfig = localStorage.getItem(RAILWAY_RELAY_CONFIG_KEY);
+    if (!rawConfig) {
+      return null;
+    }
+    const parsed = JSON.parse(rawConfig);
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+    return {
+      enabled: parsed.enabled === true,
+      endpoint: String(parsed.endpoint || '').trim(),
+      apiKey: String(parsed.apiKey || '').trim(),
+      deviceId: String(parsed.deviceId || 'esp32-motor-01').trim() || 'esp32-motor-01',
+      intervalSeconds: Math.max(2, Math.min(3600, Number(parsed.intervalSeconds) || 10)),
+      relayMode: String(parsed.relayMode || 'esp32')
+    };
+  } catch (error) {
+    console.warn('Unable to read Railway relay config:', error);
+    return null;
   }
 }
 
@@ -797,6 +828,64 @@ function setupStopButton() {
   });
 }
 
+async function relayDataToRailway(data) {
+  const relayConfig = loadRailwayRelayConfig();
+  if (!relayConfig || relayConfig.enabled !== true || !relayConfig.endpoint) {
+    return;
+  }
+  // Avoid duplicate uploads when ESP32 firmware relay is enabled.
+  if (relayConfig.relayMode !== 'browser') {
+    return;
+  }
+
+  const nowMs = Date.now();
+  const intervalMs = relayConfig.intervalSeconds * 1000;
+  if (railwayRelayState.inFlight) {
+    return;
+  }
+  if ((nowMs - railwayRelayState.lastSentAtMs) < intervalMs) {
+    return;
+  }
+
+  railwayRelayState.inFlight = true;
+  try {
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    if (relayConfig.apiKey) {
+      headers['x-api-key'] = relayConfig.apiKey;
+      headers.Authorization = `Bearer ${relayConfig.apiKey}`;
+    }
+
+    const payload = {
+      source: 'esp32-dashboard',
+      deviceId: relayConfig.deviceId,
+      timestamp: new Date().toISOString(),
+      data
+    };
+
+    const response = await fetch(relayConfig.endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Railway relay failed (${response.status})`);
+    }
+
+    railwayRelayState.lastSentAtMs = Date.now();
+  } catch (error) {
+    const now = Date.now();
+    if ((now - railwayRelayState.lastErrorAtMs) > 30000) {
+      console.warn('Railway relay error:', error);
+      railwayRelayState.lastErrorAtMs = now;
+    }
+  } finally {
+    railwayRelayState.inFlight = false;
+  }
+}
+
 // Main Update Function
 function updateDashboard(data) {
   try {
@@ -812,6 +901,7 @@ function updateDashboard(data) {
     updateFaults(data);
     updateDataLog(data);
     updateTrendSeries(data);
+    relayDataToRailway(data);
     
     // Set connected status
     setConnectionStatus(true);
@@ -835,6 +925,8 @@ async function fetchSensorData() {
   } catch (error) {
     console.error('Failed to fetch sensor data:', error);
     setConnectionStatus(false);
+    // Keep ambient weather section reactive even when ESP data is offline.
+    updateTemperature({});
   }
 }
 
@@ -868,6 +960,20 @@ function init() {
   // Fetch ambient temperature using Geolocation API
   fetchAmbientTemperature();
   setInterval(fetchAmbientTemperature, 300000); // update every 5 min
+
+  // Refresh ambient temperature when user returns to the page
+  // or when maintenance/location settings are changed in another tab/page.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      fetchAmbientTemperature();
+    }
+  });
+  window.addEventListener('focus', fetchAmbientTemperature);
+  window.addEventListener('storage', (event) => {
+    if (event.key === MAINTENANCE_CONFIG_KEY || event.key === AMBIENT_LOCATION_UPDATED_AT_KEY) {
+      fetchAmbientTemperature();
+    }
+  });
 }
 
 // Start when DOM is ready
@@ -898,7 +1004,12 @@ async function fetchAmbientTemperature() {
       }
 
       const geoData = await geoRes.json();
-      const best = geoData?.results?.[0];
+      const results = Array.isArray(geoData?.results) ? geoData.results : [];
+      const wantedState = String(locationConfig.state || '').trim().toLowerCase();
+      let best = results.find((item) => String(item?.admin1 || '').trim().toLowerCase() === wantedState);
+      if (!best) {
+        best = results[0];
+      }
       if (!best) {
         throw new Error('No matching location found for manual city/state');
       }
@@ -908,22 +1019,50 @@ async function fetchAmbientTemperature() {
       label = `${best.name}, ${best.admin1 || locationConfig.state}`;
       locationName = `${label} (Manual)`;
     } else {
-      // Auto detect from IP
-      const locRes = await fetch('https://ipapi.co/json/');
-      if (!locRes.ok) {
-        throw new Error(`Location lookup failed (${locRes.status})`);
+      // Auto detect from IP (with fallback provider)
+      let detected = null;
+      try {
+        const locRes = await fetch('https://ipapi.co/json/');
+        if (!locRes.ok) {
+          throw new Error(`ipapi failed (${locRes.status})`);
+        }
+        const locData = await locRes.json();
+        detected = {
+          latitude: Number(locData.latitude),
+          longitude: Number(locData.longitude),
+          city: locData.city,
+          region: locData.region
+        };
+      } catch (_) {
+        const fallbackRes = await fetch('https://ipwho.is/');
+        if (!fallbackRes.ok) {
+          throw new Error(`ipwho.is failed (${fallbackRes.status})`);
+        }
+        const fallbackData = await fallbackRes.json();
+        if (!fallbackData || fallbackData.success === false) {
+          throw new Error('ipwho.is lookup failed');
+        }
+        detected = {
+          latitude: Number(fallbackData.latitude),
+          longitude: Number(fallbackData.longitude),
+          city: fallbackData.city,
+          region: fallbackData.region
+        };
       }
-      const locData = await locRes.json();
 
-      lat = locData.latitude;
-      lon = locData.longitude;
-      label = `${locData.city || 'Unknown city'}, ${locData.region || 'Unknown state'}`;
+      lat = detected.latitude;
+      lon = detected.longitude;
+      label = `${detected.city || 'Unknown city'}, ${detected.region || 'Unknown state'}`;
       locationName = `${label} (Auto)`;
       localStorage.setItem(AMBIENT_AUTO_LOCATION_KEY, label);
     }
 
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      throw new Error('Invalid coordinates for weather lookup');
+    }
+
     const weatherRes = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&t=${Date.now()}`
     );
     if (!weatherRes.ok) {
       throw new Error(`Weather lookup failed (${weatherRes.status})`);
@@ -939,5 +1078,8 @@ async function fetchAmbientTemperature() {
     if (!locationName) {
       locationName = 'Location unavailable';
     }
+  } finally {
+    // Render ambient section immediately with the latest value/status.
+    updateTemperature({});
   }
 }

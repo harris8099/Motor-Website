@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WiFi Management</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="container settings-container">
+    <div class="topbar">
+      <a class="topbar-title" href="index.html">ESP32 Motor Dashboard</a>
+      <div class="topbar-center">
+        <a class="top-link" href="index.html">Home</a>
+        <a class="top-link" href="log.html">Log</a>
+        <a class="top-link" href="settings.html">Maintenance Settings</a>
+        <a class="top-link" href="wifi.html">WiFi</a>
+        <a class="top-link" href="console.html">Console</a>
+        <a class="top-link" href="about.html">About</a>
+      </div>
+      <div class="topbar-right">
+        <button id="themeToggle" class="theme-toggle-btn" title="Toggle theme">🌙</button>
+        <span class="status-indicator">
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-txt" id="statusText">Checking...</span>
+        </span>
+        <span class="timestamp" id="timestamp">--:--:--</span>
+        <span class="date" id="date">--/--/----</span>
+      </div>
+    </div>
+
+    <div class="settings-wrap wifi-wrap">
+      <section class="settings-card">
+        <h2 class="settings-title">Current WiFi Status</h2>
+        <div class="settings-form">
+          <div class="wifi-status-grid">
+            <div class="wifi-kv">
+              <span class="wifi-k">Connected</span>
+              <span class="wifi-v" id="wifiConnectedValue">No</span>
+            </div>
+            <div class="wifi-kv">
+              <span class="wifi-k">Current SSID</span>
+              <span class="wifi-v" id="currentSsidValue">--</span>
+            </div>
+            <div class="wifi-kv">
+              <span class="wifi-k">Signal (RSSI)</span>
+              <span class="wifi-v" id="rssiValue">--</span>
+            </div>
+            <div class="wifi-kv">
+              <span class="wifi-k">Last Connected</span>
+              <span class="wifi-v" id="lastSsidValue">--</span>
+            </div>
+            <div class="wifi-kv">
+              <span class="wifi-k">Router IP (STA)</span>
+              <span class="wifi-v" id="staIpValue">--</span>
+            </div>
+          </div>
+          <p id="wifiStatusMessage" class="settings-status">Status: Ready.</p>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <h2 class="settings-title">Scan Nearby Networks</h2>
+        <div class="settings-form">
+          <div class="settings-actions">
+            <button type="button" class="settings-btn settings-btn-primary" id="scanBtn">Scan WiFi</button>
+            <button type="button" class="settings-btn" id="refreshStatusBtn">Refresh Status</button>
+          </div>
+          <div id="wifiList" class="wifi-list">
+            <p class="settings-status">Press "Scan WiFi" to list available networks.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <h2 class="settings-title">Connect to WiFi</h2>
+        <form id="wifiConnectForm" class="settings-form">
+          <div>
+            <label class="settings-label" for="wifiSsidInput">SSID</label>
+            <input id="wifiSsidInput" class="settings-input" type="text" maxlength="32" placeholder="Network name">
+          </div>
+          <div>
+            <label class="settings-label" for="wifiPasswordInput">Password</label>
+            <input id="wifiPasswordInput" class="settings-input" type="password" maxlength="64" placeholder="Leave empty for open network">
+          </div>
+          <div class="settings-actions">
+            <button type="submit" class="settings-btn settings-btn-primary">Connect</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="settings-card">
+        <h2 class="settings-title">Forget Saved WiFi</h2>
+        <div class="settings-form">
+          <p class="settings-status">Removes remembered WiFi and clears current station configuration.</p>
+          <div class="settings-actions">
+            <button type="button" class="settings-btn" id="forgetBtn">Forget WiFi</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="wifi.js"></script>
+</body>
+</html>
