@@ -8,6 +8,7 @@ const CONFIG = {
 const MAINTENANCE_CONFIG_KEY = 'maintenanceConfig';
 const AMBIENT_AUTO_LOCATION_KEY = 'ambientAutoLocationLabel';
 const AMBIENT_LOCATION_UPDATED_AT_KEY = 'ambientLocationUpdatedAt';
+const AMBIENT_CACHE_KEY = 'ambientTempCache';
 const RAILWAY_RELAY_CONFIG_KEY = 'railwayRelayConfig';
 const THEME_KEY = 'appTheme';
 
@@ -36,7 +37,7 @@ function updateThemeButtonIcon() {
   const themeBtn = document.getElementById('themeToggle');
   if (themeBtn) {
     const isDarkMode = !document.body.classList.contains('light-theme');
-    themeBtn.textContent = isDarkMode ? '🌙' : '☀️';
+    themeBtn.textContent = isDarkMode ? '\u{1F319}' : '\u2600\uFE0F';
   }
 }
 
@@ -44,6 +45,7 @@ function updateThemeButtonIcon() {
 let dataLog = [];
 let isConnected = false;
 let isFaultActionInProgress = false;
+let isMotorRunning = false;
 const railwayRelayState = {
   inFlight: false,
   lastSentAtMs: 0,
@@ -61,6 +63,59 @@ const trendSeries = {
 // Global variables for ambient temperature
 let ambientTempFromAPI = null;
 let locationName = "";
+let hasShownLocalhostHint = false;
+
+function loadAmbientCache() {
+  try {
+    const raw = localStorage.getItem(AMBIENT_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const temperature = Number(parsed.temperature);
+    const location = String(parsed.location || '').trim();
+    if (!Number.isFinite(temperature)) return null;
+    return { temperature, location };
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveAmbientCache(temperature, location) {
+  if (!Number.isFinite(temperature)) return;
+  try {
+    localStorage.setItem(
+      AMBIENT_CACHE_KEY,
+      JSON.stringify({
+        temperature,
+        location: String(location || '').trim(),
+        savedAt: Date.now()
+      })
+    );
+  } catch (_) {}
+}
+
+function fetchJsonWithTimeout(url, timeoutMs = 8000) {
+  // [INFO] Shared network helper for weather/geolocation APIs.
+  // [WARN] Aborts slow requests so UI doesn't hang waiting on external services.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { signal: controller.signal })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Request failed (${response.status})`);
+      }
+      return response.json();
+    })
+    .finally(() => clearTimeout(timeoutId));
+}
+
+function getAmbientFromEsp(temp) {
+  // [INFO] Ambient fallback from ESP payload when cloud weather is unavailable.
+  const espAmbient = Number(
+    temp?.t2 ?? temp?.sensor2 ?? temp?.ambient ?? temp?.room ?? Number.NaN
+  );
+  return Number.isFinite(espAmbient) ? espAmbient : null;
+}
 
 // DOM Elements
 const elements = {
@@ -452,11 +507,13 @@ function setupFaultActionHandlers() {
 function updateMotorStatus(data) {
   const motor = data.motor || {};
   const isRunning = motor.running === true;
+  isMotorRunning = isRunning;
 
   // Update motor indicator
   elements.motorIndicator.className = 'motor-indicator ' + (isRunning ? 'on' : 'off');
   elements.motorDot.className = 'motor-dot ' + (isRunning ? 'on' : 'off');
   elements.motorLabel.textContent = isRunning ? 'Running' : 'Stopped';
+  updateMotorControlButton();
   
   // Update RPM and pulse
   elements.rpm.textContent = motor.rpm || 0;
@@ -590,26 +647,43 @@ function updatePowerMetrics(data) {
   elements.frequency.innerHTML = freq + '<span class="card-unit">Hz</span>';
 }
 function updateTemperature(data) {
+  // [WARN] This function can run on pages that don't contain temp cards.
+  // Guard early to avoid null element crashes.
+  if (!elements.temp1 || !elements.temp1Bar || !elements.temp2 || !elements.temp2Bar) {
+    return;
+  }
+
   const temp = data.temperature || data.temp || {};
-  
+
   // Temperature 1 (Motor)
   const t1 = parseFloat(temp.t1 || temp.sensor1 || temp.motor || 0);
   elements.temp1.innerHTML = t1.toFixed(1) + '<span class="card-unit">°C</span>';
   updateProgressBar(elements.temp1Bar, t1, 100, '#D85A30');
-  
-  // Temperature 2 (Ambient) - Weather API only (no ESP fallback)
+
+  // Temperature 2 (Ambient) - API first, ESP sensor fallback
+  const espAmbient = getAmbientFromEsp(temp);
   if (Number.isFinite(ambientTempFromAPI)) {
+    // [INFO] Preferred source: remote weather API.
     elements.temp2.innerHTML = ambientTempFromAPI.toFixed(1) + '<span class="card-unit">°C</span>';
     updateProgressBar(elements.temp2Bar, ambientTempFromAPI, 50, '#378ADD');
+  } else if (Number.isFinite(espAmbient)) {
+    // [WARN] Fallback source: ESP temp2 if API failed/unavailable.
+    elements.temp2.innerHTML = espAmbient.toFixed(1) + '<span class="card-unit">°C</span>';
+    updateProgressBar(elements.temp2Bar, espAmbient, 50, '#378ADD');
   } else {
+    // [ERROR] No valid ambient source available.
     elements.temp2.innerHTML = '--<span class="card-unit">°C</span>';
     updateProgressBar(elements.temp2Bar, 0, 50, '#378ADD');
   }
 
   if (elements.ambientLocationLabel) {
-    elements.ambientLocationLabel.textContent = locationName
-      ? `Location: ${locationName}`
-      : 'Location: Detecting...';
+    if (locationName) {
+      elements.ambientLocationLabel.textContent = `Location: ${locationName}`;
+    } else if (Number.isFinite(espAmbient)) {
+      elements.ambientLocationLabel.textContent = 'Location: ESP sensor fallback';
+    } else {
+      elements.ambientLocationLabel.textContent = 'Location: Detecting...';
+    }
   }
 }
 // Vibration update
@@ -649,7 +723,11 @@ function updateDataLog(data) {
     current: parseFloat(power.current || power.a || 0).toFixed(2),
     power: Math.round(power.power || power.w || 0),
     temp1: parseFloat(temp.t1 || temp.sensor1 || temp.motor || 0).toFixed(1),
-    temp2: Number.isFinite(ambientTempFromAPI) ? ambientTempFromAPI.toFixed(1) : '--',
+    temp2: (() => {
+      if (Number.isFinite(ambientTempFromAPI)) return ambientTempFromAPI.toFixed(1);
+      const espAmbient = getAmbientFromEsp(temp);
+      return Number.isFinite(espAmbient) ? espAmbient.toFixed(1) : '--';
+    })(),
     rpm: motor.rpm || 0
   };
   
@@ -796,34 +874,56 @@ function setupTrendCharts() {
   window.addEventListener('resize', renderTrendCharts);
 }
 
-function setupStopButton() {
-  const stopButton = document.getElementById('stopMotorBtn');
-  if (!stopButton) return;
+function updateMotorControlButton() {
+  const button = document.getElementById('stopMotorBtn');
+  if (!button) return;
 
-  stopButton.addEventListener('click', async () => {
+  if (isMotorRunning) {
+    button.textContent = 'STOP';
+    button.classList.remove('start-btn-ribbon');
+    button.classList.add('stop-btn-ribbon');
+    button.title = 'Stop motor';
+  } else {
+    button.textContent = 'START';
+    button.classList.remove('stop-btn-ribbon');
+    button.classList.add('start-btn-ribbon');
+    button.title = 'Start motor';
+  }
+}
+
+function setupMotorControlButton() {
+  const button = document.getElementById('stopMotorBtn');
+  if (!button) return;
+
+  updateMotorControlButton();
+  button.addEventListener('click', async () => {
+    const shouldStart = !isMotorRunning;
+    const endpoint = shouldStart ? '/motor/start' : '/motor/stop';
+    const pendingLabel = shouldStart ? 'Starting...' : 'Stopping...';
+    const errorLabel = shouldStart
+      ? 'Failed to start motor. Resolve active faults first.'
+      : 'Failed to stop motor. Check if ESP32 is connected.';
+
     try {
-      stopButton.disabled = true;
-      stopButton.textContent = 'Stopping...';
-      
-      const response = await fetch('/motor/stop', {
+      button.disabled = true;
+      button.textContent = pendingLabel;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to stop motor (${response.status})`);
+        throw new Error(`Motor control failed (${response.status})`);
       }
 
-      // Refresh data immediately
       await fetchSensorData();
     } catch (error) {
-      console.error('Error stopping motor:', error);
-      alert('Failed to stop motor. Check if ESP32 is connected.');
+      console.error('Error controlling motor:', error);
+      alert(errorLabel);
     } finally {
-      stopButton.disabled = false;
-      stopButton.textContent = 'STOP';
+      button.disabled = false;
+      updateMotorControlButton();
     }
   });
 }
@@ -913,6 +1013,7 @@ function updateDashboard(data) {
 // Fetch Data from ESP32
 async function fetchSensorData() {
   try {
+    // [INFO] Primary telemetry poll from ESP32 HTTP server.
     const response = await fetch(CONFIG.dataEndpoint);
     
     if (!response.ok) {
@@ -923,7 +1024,19 @@ async function fetchSensorData() {
     updateDashboard(data);
     
   } catch (error) {
+    // [ERROR] Dashboard data fetch failed.
     console.error('Failed to fetch sensor data:', error);
+    if (
+      !hasShownLocalhostHint &&
+      (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost')
+    ) {
+      // [WARN] Localhost serves static files only; ESP endpoints are not present there.
+      hasShownLocalhostHint = true;
+      console.warn('You are opening dashboard on localhost. Open ESP32 IP (for example http://192.168.x.x/) to read /data.');
+      if (elements.statusText) {
+        elements.statusText.textContent = 'Open ESP IP, not localhost';
+      }
+    }
     setConnectionStatus(false);
     // Keep ambient weather section reactive even when ESP data is offline.
     updateTemperature({});
@@ -943,7 +1056,7 @@ function init() {
   
   setupFaultActionHandlers();
   setupTrendCharts();
-  setupStopButton();
+  setupMotorControlButton();
   
   // Initial fetch
   fetchSensorData();
@@ -956,6 +1069,16 @@ function init() {
 
   // timestamp display
   elements.timestamp.textContent = getCurrentTime();
+
+  // Load last known ambient temperature so refresh doesn't show "--" immediately.
+  const ambientCache = loadAmbientCache();
+  if (ambientCache) {
+    ambientTempFromAPI = ambientCache.temperature;
+    if (!locationName && ambientCache.location) {
+      locationName = ambientCache.location;
+    }
+    updateTemperature({});
+  }
 
   // Fetch ambient temperature using Geolocation API
   fetchAmbientTemperature();
@@ -985,6 +1108,7 @@ if (document.readyState === 'loading') {
 
 async function fetchAmbientTemperature() {
   try {
+    // [INFO] Resolve location and fetch ambient weather temperature.
     const locationConfig = getAmbientLocationConfig();
     let lat;
     let lon;
@@ -992,18 +1116,16 @@ async function fetchAmbientTemperature() {
 
     if (locationConfig.mode === 'manual') {
       if (!locationConfig.city || !locationConfig.state) {
+        // [WARN] Manual mode selected but location fields are incomplete.
         ambientTempFromAPI = null;
         locationName = 'Manual location not set';
         return;
       }
 
       const query = encodeURIComponent(`${locationConfig.city}, ${locationConfig.state}`);
-      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=1&language=en&format=json`);
-      if (!geoRes.ok) {
-        throw new Error(`Geocoding lookup failed (${geoRes.status})`);
-      }
-
-      const geoData = await geoRes.json();
+      const geoData = await fetchJsonWithTimeout(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${query}&count=3&language=en&format=json`
+      );
       const results = Array.isArray(geoData?.results) ? geoData.results : [];
       const wantedState = String(locationConfig.state || '').trim().toLowerCase();
       let best = results.find((item) => String(item?.admin1 || '').trim().toLowerCase() === wantedState);
@@ -1011,6 +1133,7 @@ async function fetchAmbientTemperature() {
         best = results[0];
       }
       if (!best) {
+        // [ERROR] Geocoder couldn't resolve chosen manual city/state.
         throw new Error('No matching location found for manual city/state');
       }
 
@@ -1019,67 +1142,99 @@ async function fetchAmbientTemperature() {
       label = `${best.name}, ${best.admin1 || locationConfig.state}`;
       locationName = `${label} (Manual)`;
     } else {
-      // Auto detect from IP (with fallback provider)
+      // [INFO] Auto detect: browser geolocation -> IP lookup providers
       let detected = null;
       try {
-        const locRes = await fetch('https://ipapi.co/json/');
-        if (!locRes.ok) {
-          throw new Error(`ipapi failed (${locRes.status})`);
+        if (!navigator.geolocation) {
+          throw new Error('Geolocation API unavailable');
         }
-        const locData = await locRes.json();
+        const geolocation = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve(pos),
+            (err) => reject(err),
+            { enableHighAccuracy: false, timeout: 6000, maximumAge: 120000 }
+          );
+        });
         detected = {
-          latitude: Number(locData.latitude),
-          longitude: Number(locData.longitude),
-          city: locData.city,
-          region: locData.region
+          latitude: Number(geolocation.coords.latitude),
+          longitude: Number(geolocation.coords.longitude),
+          city: null,
+          region: null,
+          source: 'gps'
         };
       } catch (_) {
-        const fallbackRes = await fetch('https://ipwho.is/');
-        if (!fallbackRes.ok) {
-          throw new Error(`ipwho.is failed (${fallbackRes.status})`);
+        // [WARN] GPS unavailable/blocked; fall back to IP-based lookup.
+        try {
+          const locData = await fetchJsonWithTimeout('https://ipapi.co/json/');
+          detected = {
+            latitude: Number(locData.latitude),
+            longitude: Number(locData.longitude),
+            city: locData.city,
+            region: locData.region,
+            source: 'ipapi'
+          };
+        } catch (_) {
+          // [WARN] Primary IP provider failed; use secondary provider.
+          const fallbackData = await fetchJsonWithTimeout('https://ipwho.is/');
+          if (!fallbackData || fallbackData.success === false) {
+            // [ERROR] All auto-location providers failed.
+            throw new Error('ipwho.is lookup failed');
+          }
+          detected = {
+            latitude: Number(fallbackData.latitude),
+            longitude: Number(fallbackData.longitude),
+            city: fallbackData.city,
+            region: fallbackData.region,
+            source: 'ipwho'
+          };
         }
-        const fallbackData = await fallbackRes.json();
-        if (!fallbackData || fallbackData.success === false) {
-          throw new Error('ipwho.is lookup failed');
-        }
-        detected = {
-          latitude: Number(fallbackData.latitude),
-          longitude: Number(fallbackData.longitude),
-          city: fallbackData.city,
-          region: fallbackData.region
-        };
       }
 
       lat = detected.latitude;
       lon = detected.longitude;
-      label = `${detected.city || 'Unknown city'}, ${detected.region || 'Unknown state'}`;
+      if (detected.source === 'gps') {
+        label = 'Device GPS';
+      } else {
+        label = `${detected.city || 'Unknown city'}, ${detected.region || 'Unknown state'}`;
+      }
       locationName = `${label} (Auto)`;
       localStorage.setItem(AMBIENT_AUTO_LOCATION_KEY, label);
     }
 
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      // [ERROR] Location resolved, but coordinates are invalid.
       throw new Error('Invalid coordinates for weather lookup');
     }
 
-    const weatherRes = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&t=${Date.now()}`
+    const weatherData = await fetchJsonWithTimeout(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&current_weather=true&t=${Date.now()}`
     );
-    if (!weatherRes.ok) {
-      throw new Error(`Weather lookup failed (${weatherRes.status})`);
+
+    const weatherTemp = weatherData?.current?.temperature_2m ?? weatherData?.current_weather?.temperature;
+    ambientTempFromAPI = Number.isFinite(Number(weatherTemp)) ? Number(weatherTemp) : null;
+    if (Number.isFinite(ambientTempFromAPI)) {
+      saveAmbientCache(ambientTempFromAPI, locationName);
     }
 
-    const weatherData = await weatherRes.json();
-    const weatherTemp = weatherData?.current_weather?.temperature;
-    ambientTempFromAPI = Number.isFinite(Number(weatherTemp)) ? Number(weatherTemp) : null;
-
   } catch (err) {
-    console.error("Ambient temp fetch failed:", err);
-    ambientTempFromAPI = null;
+    // [ERROR] Ambient weather pipeline failed; keep graceful fallbacks active.
+    console.error('Ambient temp fetch failed:', err);
+    if (!Number.isFinite(ambientTempFromAPI)) {
+      const ambientCache = loadAmbientCache();
+      if (ambientCache) {
+        ambientTempFromAPI = ambientCache.temperature;
+        if (!locationName && ambientCache.location) {
+          locationName = ambientCache.location;
+        }
+      } else {
+        ambientTempFromAPI = null;
+      }
+    }
     if (!locationName) {
       locationName = 'Location unavailable';
     }
   } finally {
-    // Render ambient section immediately with the latest value/status.
+    // Render ambient section immediately with latest API/fallback state.
     updateTemperature({});
   }
 }

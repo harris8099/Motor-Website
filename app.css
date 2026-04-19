@@ -265,6 +265,33 @@ body.light-theme .topbar {
   transform: translateY(0);
 }
 
+.start-btn-ribbon {
+  background: #24b36b;
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  line-height: 1.4;
+  font-family: var(--font-mono);
+}
+
+.start-btn-ribbon:hover {
+  background: #1ea35f;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(36, 179, 107, 0.35);
+}
+
+.start-btn-ribbon:active {
+  transform: translateY(0);
+}
+
 /* ── Dashboard layout ───────────────────────────────── */
 .dashboard-main {
   display: grid;
