@@ -13,6 +13,9 @@ const elements = {
   lastSsidValue: document.getElementById('lastSsidValue'),
   staIpValue: document.getElementById('staIpValue'),
   wifiStatusMessage: document.getElementById('wifiStatusMessage'),
+  scanStatusMessage: document.getElementById('scanStatusMessage'),
+  connectStatusMessage: document.getElementById('connectStatusMessage'),
+  forgetStatusMessage: document.getElementById('forgetStatusMessage'),
   scanBtn: document.getElementById('scanBtn'),
   refreshStatusBtn: document.getElementById('refreshStatusBtn'),
   wifiList: document.getElementById('wifiList'),
@@ -31,7 +34,7 @@ function setTheme(theme) {
   document.body.classList.toggle('light-theme', theme === 'light');
   localStorage.setItem(THEME_KEY, theme);
   if (elements.themeToggle) {
-    elements.themeToggle.textContent = theme === 'light' ? '☀️' : '🌙';
+    elements.themeToggle.textContent = theme === 'light' ? '\u2600\uFE0F' : '\u{1F319}';
   }
 }
 
@@ -55,6 +58,12 @@ function setStatusMessage(message, isError = false) {
   if (!elements.wifiStatusMessage) return;
   elements.wifiStatusMessage.textContent = `Status: ${message}`;
   elements.wifiStatusMessage.style.color = isError ? '#D85A30' : '';
+}
+
+function setSectionStatus(element, message, isError = false) {
+  if (!element) return;
+  element.textContent = `Status: ${message}`;
+  element.style.color = isError ? '#D85A30' : '';
 }
 
 function escapeHtml(value) {
@@ -132,7 +141,7 @@ function renderWifiList(networks) {
 
 async function scanWifi() {
   elements.scanBtn.disabled = true;
-  setStatusMessage('Scanning nearby WiFi networks...');
+  setSectionStatus(elements.scanStatusMessage, 'Scanning nearby WiFi networks...');
   try {
     const response = await fetch('/wifi/scan');
     if (!response.ok) {
@@ -140,10 +149,10 @@ async function scanWifi() {
     }
     const data = await response.json();
     renderWifiList(data.networks || []);
-    setStatusMessage(`Scan complete. Found ${(data.networks || []).length} network(s).`);
+    setSectionStatus(elements.scanStatusMessage, `Scan complete. Found ${(data.networks || []).length} network(s).`);
   } catch (error) {
     renderWifiList([]);
-    setStatusMessage(error.message, true);
+    setSectionStatus(elements.scanStatusMessage, error.message, true);
   } finally {
     elements.scanBtn.disabled = false;
   }
@@ -155,11 +164,11 @@ async function connectWifi(event) {
   const password = elements.wifiPasswordInput.value || '';
 
   if (!ssid) {
-    setStatusMessage('SSID is required before connecting.', true);
+    setSectionStatus(elements.connectStatusMessage, 'SSID is required before connecting.', true);
     return;
   }
 
-  setStatusMessage(`Connecting to "${ssid}"...`);
+  setSectionStatus(elements.connectStatusMessage, `Connecting to "${ssid}"...`);
   try {
     const response = await fetch('/wifi/connect', {
       method: 'POST',
@@ -174,9 +183,9 @@ async function connectWifi(event) {
 
     await new Promise((resolve) => setTimeout(resolve, 1500));
     await fetchWifiStatus();
-    setStatusMessage(`Connect request sent for "${ssid}".`);
+    setSectionStatus(elements.connectStatusMessage, `Connect request sent for "${ssid}".`);
   } catch (error) {
-    setStatusMessage(error.message, true);
+    setSectionStatus(elements.connectStatusMessage, error.message, true);
   }
 }
 
@@ -184,7 +193,7 @@ async function forgetWifi() {
   const confirmed = confirm('Forget remembered WiFi and clear STA configuration?');
   if (!confirmed) return;
 
-  setStatusMessage('Forgetting saved WiFi...');
+  setSectionStatus(elements.forgetStatusMessage, 'Forgetting saved WiFi...');
   try {
     const response = await fetch('/wifi/forget', { method: 'POST' });
     if (!response.ok) {
@@ -194,9 +203,9 @@ async function forgetWifi() {
 
     elements.wifiPasswordInput.value = '';
     await fetchWifiStatus();
-    setStatusMessage('Saved WiFi removed successfully.');
+    setSectionStatus(elements.forgetStatusMessage, 'Saved WiFi removed successfully.');
   } catch (error) {
-    setStatusMessage(error.message, true);
+    setSectionStatus(elements.forgetStatusMessage, error.message, true);
   }
 }
 
@@ -233,3 +242,4 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 })();
+

@@ -62,6 +62,7 @@
             <button type="button" id="clearMaintenanceBtn" class="settings-btn">Clear Maintenance Form</button>
             <button type="button" id="clearNvsBtn" class="settings-btn">Clear ESP NVS</button>
           </div>
+          <p id="maintenanceStatus" class="settings-status">Status: Waiting for maintenance input...</p>
         </form>
       </section>
 
@@ -94,7 +95,62 @@
             <button type="submit" class="settings-btn settings-btn-primary">Update Location</button>
             <button type="button" id="clearLocationBtn" class="settings-btn">Clear Location Form</button>
           </div>
-          <p id="saveStatus" class="settings-status">Status: Waiting for input...</p>
+          <p id="saveStatus" class="settings-status">Status: Waiting for ambient temperature input...</p>
+        </form>
+      </section>
+
+      <section class="settings-card">
+        <h2 class="settings-title">Protection Settings</h2>
+        <form id="protectionForm" class="settings-form">
+          <div class="settings-location-grid">
+            <div>
+              <label class="settings-label" for="maxCurrentA">Max Current (A)</label>
+              <input id="maxCurrentA" class="settings-input" type="number" min="0.1" step="0.1" placeholder="5.0">
+            </div>
+            <div>
+              <label class="settings-label" for="maxTempC">Max Temperature (C)</label>
+              <input id="maxTempC" class="settings-input" type="number" min="1" step="0.1" placeholder="80">
+            </div>
+          </div>
+          <div class="settings-location-grid">
+            <div>
+              <label class="settings-label" for="overvoltageV">Overvoltage Trip (V)</label>
+              <input id="overvoltageV" class="settings-input" type="number" min="10" step="0.1" placeholder="250">
+            </div>
+            <div>
+              <label class="settings-label" for="undervoltageV">Undervoltage Trip (V)</label>
+              <input id="undervoltageV" class="settings-input" type="number" min="10" step="0.1" placeholder="190">
+            </div>
+          </div>
+          <div class="settings-location-grid">
+            <div>
+              <label class="settings-label" for="minRpm">Min RPM (stall check)</label>
+              <input id="minRpm" class="settings-input" type="number" min="0" step="1" placeholder="500">
+            </div>
+            <div>
+              <label class="settings-label" for="stallCurrentA">Stall Current Threshold (A)</label>
+              <input id="stallCurrentA" class="settings-input" type="number" min="0" step="0.1" placeholder="0.5">
+            </div>
+          </div>
+          <div class="settings-location-grid">
+            <div>
+              <label class="settings-label" for="startupGraceMs">Startup Grace (ms)</label>
+              <input id="startupGraceMs" class="settings-input" type="number" min="0" step="100" placeholder="3000">
+            </div>
+            <div>
+              <label class="settings-label" for="faultTripCount">Trip Count</label>
+              <input id="faultTripCount" class="settings-input" type="number" min="1" step="1" placeholder="3">
+            </div>
+          </div>
+          <div>
+            <label class="settings-label" for="vibrationAckGraceMs">Vibration Ack Grace (ms)</label>
+            <input id="vibrationAckGraceMs" class="settings-input" type="number" min="0" step="100" placeholder="1500">
+          </div>
+          <div class="settings-actions">
+            <button type="submit" class="settings-btn settings-btn-primary">Save Protection</button>
+            <button type="button" id="resetProtectionDefaultsBtn" class="settings-btn">Reset Protection Defaults</button>
+          </div>
+          <p id="protectionStatus" class="settings-status">Status: Waiting for protection input...</p>
         </form>
       </section>
 
@@ -128,6 +184,7 @@
             <button type="submit" class="settings-btn settings-btn-primary">Save Railway Relay</button>
             <button type="button" id="clearRailwayBtn" class="settings-btn">Clear Railway Relay</button>
           </div>
+          <p id="railwayStatus" class="settings-status">Status: Waiting for railway input...</p>
         </form>
       </section>
 
@@ -216,6 +273,7 @@
             </div>
           </div>
           <p id="mqttStatusLastErrorText" class="settings-status">Last error: --</p>
+          <p id="mqttStatus" class="settings-status">Status: Waiting for MQTT input...</p>
         </form>
       </section>
 

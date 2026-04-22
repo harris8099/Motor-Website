@@ -30,7 +30,7 @@ function updateThemeButtonIcon() {
   const themeBtn = document.getElementById('themeToggle');
   if (themeBtn) {
     const isDarkMode = !document.body.classList.contains('light-theme');
-    themeBtn.textContent = isDarkMode ? '🌙' : '☀️';
+    themeBtn.textContent = isDarkMode ? '\u{1F319}' : '\u2600\uFE0F';
   }
 }
 
@@ -139,3 +139,4 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+

@@ -3,12 +3,14 @@
 const MAINTENANCE_CONFIG_KEY = 'maintenanceConfig';
 const AMBIENT_LOCATION_UPDATED_AT_KEY = 'ambientLocationUpdatedAt';
 const MAINTENANCE_CONFIG_ENDPOINT = '/maintenance/config';
+const PROTECTION_CONFIG_ENDPOINT = '/protection/config';
 const RELAY_CONFIG_ENDPOINT = '/relay/config';
 const MQTT_CONFIG_ENDPOINT = '/mqtt/config';
 const MQTT_STATUS_ENDPOINT = '/mqtt/status';
 const AMBIENT_AUTO_LOCATION_KEY = 'ambientAutoLocationLabel';
 const RAILWAY_RELAY_CONFIG_KEY = 'railwayRelayConfig';
 const MQTT_RELAY_CONFIG_KEY = 'mqttRelayConfig';
+const PROTECTION_CONFIG_KEY = 'protectionConfig';
 const THEME_KEY = 'appTheme';
 
 const STATE_CITY_OPTIONS = {
@@ -48,6 +50,20 @@ const elements = {
   clearMaintenanceBtn: document.getElementById('clearMaintenanceBtn'),
   clearLocationBtn: document.getElementById('clearLocationBtn'),
   clearNvsBtn: document.getElementById('clearNvsBtn'),
+  maintenanceStatus: document.getElementById('maintenanceStatus'),
+  protectionStatus: document.getElementById('protectionStatus'),
+  railwayStatus: document.getElementById('railwayStatus'),
+  protectionForm: document.getElementById('protectionForm'),
+  maxCurrentA: document.getElementById('maxCurrentA'),
+  maxTempC: document.getElementById('maxTempC'),
+  minRpm: document.getElementById('minRpm'),
+  overvoltageV: document.getElementById('overvoltageV'),
+  undervoltageV: document.getElementById('undervoltageV'),
+  stallCurrentA: document.getElementById('stallCurrentA'),
+  startupGraceMs: document.getElementById('startupGraceMs'),
+  faultTripCount: document.getElementById('faultTripCount'),
+  vibrationAckGraceMs: document.getElementById('vibrationAckGraceMs'),
+  resetProtectionDefaultsBtn: document.getElementById('resetProtectionDefaultsBtn'),
   railwayForm: document.getElementById('railwayForm'),
   railwayEnabled: document.getElementById('railwayEnabled'),
   railwayEndpoint: document.getElementById('railwayEndpoint'),
@@ -74,6 +90,7 @@ const elements = {
   mqttStatusSuccessCount: document.getElementById('mqttStatusSuccessCount'),
   mqttStatusFailCount: document.getElementById('mqttStatusFailCount'),
   mqttStatusLastErrorText: document.getElementById('mqttStatusLastErrorText'),
+  mqttStatus: document.getElementById('mqttStatus'),
   saveStatus: document.getElementById('saveStatus')
 };
 
@@ -99,6 +116,18 @@ const DEFAULT_MQTT_RELAY_CONFIG = {
   relayMode: 'esp32'
 };
 
+const DEFAULT_PROTECTION_CONFIG = {
+  maxCurrentA: 5.0,
+  maxTempC: 80.0,
+  minRpm: 500,
+  overvoltageV: 250.0,
+  undervoltageV: 190.0,
+  stallCurrentA: 0.5,
+  startupGraceMs: 3000,
+  faultTripCount: 3,
+  vibrationAckGraceMs: 1500
+};
+
 // --- Theme Management ---
 function initializeTheme() {
   const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
@@ -109,7 +138,13 @@ function setTheme(theme) {
   document.body.classList.toggle('light-theme', theme === 'light');
   localStorage.setItem(THEME_KEY, theme);
   const themeBtn = document.getElementById('themeToggle');
-  if (themeBtn) themeBtn.textContent = theme === 'light' ? '☀️' : '🌙';
+  if (themeBtn) themeBtn.textContent = theme === 'light' ? '\u2600\uFE0F' : '\u{1F319}';
+}
+
+function setSectionStatus(element, message, color = '#1D9E75') {
+  if (!element) return;
+  element.textContent = message;
+  element.style.color = color;
 }
 
 // --- Data Utilities ---
@@ -207,6 +242,29 @@ function clearMqttRelayConfig() {
   localStorage.removeItem(MQTT_RELAY_CONFIG_KEY);
 }
 
+function loadProtectionConfig() {
+  try {
+    const raw = localStorage.getItem(PROTECTION_CONFIG_KEY);
+    if (!raw) return { ...DEFAULT_PROTECTION_CONFIG };
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return { ...DEFAULT_PROTECTION_CONFIG };
+    return {
+      ...DEFAULT_PROTECTION_CONFIG,
+      ...parsed
+    };
+  } catch (error) {
+    return { ...DEFAULT_PROTECTION_CONFIG };
+  }
+}
+
+function saveProtectionConfig(config) {
+  localStorage.setItem(PROTECTION_CONFIG_KEY, JSON.stringify(config));
+}
+
+function clearProtectionConfig() {
+  localStorage.removeItem(PROTECTION_CONFIG_KEY);
+}
+
 async function pullRailwayRelayConfigFromEsp() {
   const response = await fetch(RELAY_CONFIG_ENDPOINT);
   if (!response.ok) throw new Error('Failed to read relay config from ESP');
@@ -297,6 +355,53 @@ async function clearMqttRelayConfigOnEsp() {
   if (!response.ok) throw new Error('Failed to clear MQTT config on ESP');
 }
 
+async function pullProtectionConfigFromEsp() {
+  const response = await fetch(PROTECTION_CONFIG_ENDPOINT);
+  if (!response.ok) throw new Error('Failed to read protection config from ESP');
+  const data = await response.json();
+  const next = {
+    ...DEFAULT_PROTECTION_CONFIG,
+    ...data,
+    maxCurrentA: Number(data.maxCurrentA) || DEFAULT_PROTECTION_CONFIG.maxCurrentA,
+    maxTempC: Number(data.maxTempC) || DEFAULT_PROTECTION_CONFIG.maxTempC,
+    minRpm: Math.round(Number(data.minRpm) || DEFAULT_PROTECTION_CONFIG.minRpm),
+    overvoltageV: Number(data.overvoltageV) || DEFAULT_PROTECTION_CONFIG.overvoltageV,
+    undervoltageV: Number(data.undervoltageV) || DEFAULT_PROTECTION_CONFIG.undervoltageV,
+    stallCurrentA: Number(data.stallCurrentA) || DEFAULT_PROTECTION_CONFIG.stallCurrentA,
+    startupGraceMs: Math.round(Number(data.startupGraceMs) || DEFAULT_PROTECTION_CONFIG.startupGraceMs),
+    faultTripCount: Math.round(Number(data.faultTripCount) || DEFAULT_PROTECTION_CONFIG.faultTripCount),
+    vibrationAckGraceMs: Math.round(Number(data.vibrationAckGraceMs) || DEFAULT_PROTECTION_CONFIG.vibrationAckGraceMs)
+  };
+  saveProtectionConfig(next);
+  return next;
+}
+
+async function pushProtectionConfigToEsp(config) {
+  const payload = {
+    maxCurrentA: Number(config.maxCurrentA),
+    maxTempC: Number(config.maxTempC),
+    minRpm: Math.round(Number(config.minRpm)),
+    overvoltageV: Number(config.overvoltageV),
+    undervoltageV: Number(config.undervoltageV),
+    stallCurrentA: Number(config.stallCurrentA),
+    startupGraceMs: Math.round(Number(config.startupGraceMs)),
+    faultTripCount: Math.round(Number(config.faultTripCount)),
+    vibrationAckGraceMs: Math.round(Number(config.vibrationAckGraceMs))
+  };
+
+  const response = await fetch(PROTECTION_CONFIG_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) throw new Error('Failed to save protection config to ESP');
+}
+
+async function clearProtectionConfigOnEsp() {
+  const response = await fetch(PROTECTION_CONFIG_ENDPOINT, { method: 'DELETE' });
+  if (!response.ok) throw new Error('Failed to clear protection config on ESP');
+}
+
 async function refreshMqttStatus() {
   try {
     const response = await fetch(MQTT_STATUS_ENDPOINT);
@@ -380,6 +485,7 @@ function fillForm() {
   const config = loadConfig();
   const railwayConfig = loadRailwayRelayConfig();
   const mqttConfig = loadMqttRelayConfig();
+  const protectionConfig = loadProtectionConfig();
   
   if (config.nextMaintenanceTime) {
     const d = new Date(config.nextMaintenanceTime);
@@ -448,6 +554,16 @@ function fillForm() {
   if (elements.mqttRetain) {
     elements.mqttRetain.value = mqttConfig.retain === true ? 'true' : 'false';
   }
+
+  if (elements.maxCurrentA) elements.maxCurrentA.value = protectionConfig.maxCurrentA;
+  if (elements.maxTempC) elements.maxTempC.value = protectionConfig.maxTempC;
+  if (elements.minRpm) elements.minRpm.value = protectionConfig.minRpm;
+  if (elements.overvoltageV) elements.overvoltageV.value = protectionConfig.overvoltageV;
+  if (elements.undervoltageV) elements.undervoltageV.value = protectionConfig.undervoltageV;
+  if (elements.stallCurrentA) elements.stallCurrentA.value = protectionConfig.stallCurrentA;
+  if (elements.startupGraceMs) elements.startupGraceMs.value = protectionConfig.startupGraceMs;
+  if (elements.faultTripCount) elements.faultTripCount.value = protectionConfig.faultTripCount;
+  if (elements.vibrationAckGraceMs) elements.vibrationAckGraceMs.value = protectionConfig.vibrationAckGraceMs;
 }
 
 // --- API Sync ---
@@ -498,8 +614,7 @@ async function handleMaintenanceSave(e) {
   if (y && m && d) {
     const dateWithTimezone = toIso8601WithTimezone(y, m, d, h || 0, mi || 0);
     if (!dateWithTimezone) {
-      elements.saveStatus.textContent = "Error: Invalid maintenance date/time.";
-      elements.saveStatus.style.color = "#D85A30";
+      setSectionStatus(elements.maintenanceStatus, "Error: Invalid maintenance date/time.", "#D85A30");
       return;
     }
     config.nextMaintenanceTime = dateWithTimezone;
@@ -514,11 +629,9 @@ async function handleMaintenanceSave(e) {
   try {
     saveConfig(config);
     await pushConfigToEsp(config);
-    elements.saveStatus.textContent = "Maintenance settings saved & synced!";
-    elements.saveStatus.style.color = "#1D9E75";
+    setSectionStatus(elements.maintenanceStatus, "Maintenance settings saved & synced!", "#1D9E75");
   } catch (err) {
-    elements.saveStatus.textContent = "Saved locally, but ESP is offline.";
-    elements.saveStatus.style.color = "#EF9F27";
+    setSectionStatus(elements.maintenanceStatus, "Saved locally, but ESP is offline.", "#EF9F27");
   }
 }
 
@@ -546,8 +659,7 @@ function handleClearMaintenanceForm() {
   const next = clearMaintenanceFromConfig(loadConfig());
   saveConfig(next);
   fillForm();
-  elements.saveStatus.textContent = "Maintenance form cleared locally.";
-  elements.saveStatus.style.color = "#1D9E75";
+  setSectionStatus(elements.maintenanceStatus, "Maintenance form cleared locally.", "#1D9E75");
 }
 
 function handleClearLocationForm() {
@@ -572,11 +684,59 @@ async function handleClearNvs() {
     const next = clearMaintenanceFromConfig(loadConfig());
     saveConfig(next);
     fillForm();
-    elements.saveStatus.textContent = "ESP32 NVS cleared successfully.";
-    elements.saveStatus.style.color = "#1D9E75";
+    setSectionStatus(elements.maintenanceStatus, "ESP32 NVS cleared successfully.", "#1D9E75");
   } catch (error) {
-    elements.saveStatus.textContent = "Failed to clear ESP32 NVS.";
-    elements.saveStatus.style.color = "#D85A30";
+    setSectionStatus(elements.maintenanceStatus, "Failed to clear ESP32 NVS.", "#D85A30");
+  }
+}
+
+function parseNumberInRange(rawValue, fallback, min, max, integerOnly = false) {
+  const parsed = Number(rawValue);
+  if (!Number.isFinite(parsed)) return fallback;
+  const normalized = integerOnly ? Math.round(parsed) : parsed;
+  return Math.min(max, Math.max(min, normalized));
+}
+
+async function handleProtectionSave(e) {
+  e.preventDefault();
+
+  const next = {
+    maxCurrentA: parseNumberInRange(elements.maxCurrentA?.value, DEFAULT_PROTECTION_CONFIG.maxCurrentA, 0.1, 100),
+    maxTempC: parseNumberInRange(elements.maxTempC?.value, DEFAULT_PROTECTION_CONFIG.maxTempC, 1, 200),
+    minRpm: parseNumberInRange(elements.minRpm?.value, DEFAULT_PROTECTION_CONFIG.minRpm, 0, 50000, true),
+    overvoltageV: parseNumberInRange(elements.overvoltageV?.value, DEFAULT_PROTECTION_CONFIG.overvoltageV, 10, 500),
+    undervoltageV: parseNumberInRange(elements.undervoltageV?.value, DEFAULT_PROTECTION_CONFIG.undervoltageV, 10, 500),
+    stallCurrentA: parseNumberInRange(elements.stallCurrentA?.value, DEFAULT_PROTECTION_CONFIG.stallCurrentA, 0, 30),
+    startupGraceMs: parseNumberInRange(elements.startupGraceMs?.value, DEFAULT_PROTECTION_CONFIG.startupGraceMs, 0, 60000, true),
+    faultTripCount: parseNumberInRange(elements.faultTripCount?.value, DEFAULT_PROTECTION_CONFIG.faultTripCount, 1, 20, true),
+    vibrationAckGraceMs: parseNumberInRange(elements.vibrationAckGraceMs?.value, DEFAULT_PROTECTION_CONFIG.vibrationAckGraceMs, 0, 60000, true)
+  };
+
+  if (next.undervoltageV >= next.overvoltageV) {
+    setSectionStatus(elements.protectionStatus, "Error: Undervoltage must be lower than overvoltage.", "#D85A30");
+    return;
+  }
+
+  try {
+    saveProtectionConfig(next);
+    await pushProtectionConfigToEsp(next);
+    await pullProtectionConfigFromEsp().catch(() => {});
+    fillForm();
+    setSectionStatus(elements.protectionStatus, "Protection settings saved and synced!", "#1D9E75");
+  } catch (error) {
+    setSectionStatus(elements.protectionStatus, "Saved locally, but failed to sync protection settings to ESP32.", "#EF9F27");
+  }
+}
+
+async function handleResetProtectionDefaults() {
+  try {
+    clearProtectionConfig();
+    await clearProtectionConfigOnEsp();
+    await pullProtectionConfigFromEsp().catch(() => {});
+    fillForm();
+    setSectionStatus(elements.protectionStatus, "Protection settings reset to firmware defaults.", "#1D9E75");
+  } catch (error) {
+    setSectionStatus(elements.protectionStatus, "Failed to reset protection settings on ESP32.", "#D85A30");
   }
 }
 
@@ -614,8 +774,7 @@ async function handleRailwaySave(e) {
   const intervalSeconds = parseRelayIntervalSeconds(elements.railwayIntervalSeconds?.value);
 
   if (enabled && !isHttpUrl(endpoint)) {
-    elements.saveStatus.textContent = "Error: Railway endpoint must start with http:// or https://";
-    elements.saveStatus.style.color = "#D85A30";
+    setSectionStatus(elements.railwayStatus, "Error: Railway endpoint must start with http:// or https://", "#D85A30");
     return;
   }
 
@@ -633,13 +792,13 @@ async function handleRailwaySave(e) {
     await pushRailwayRelayConfigToEsp(relayConfig);
     await pullRailwayRelayConfigFromEsp();
     fillForm();
-    elements.saveStatus.textContent = enabled
-      ? "Railway relay saved to ESP32 and enabled."
-      : "Railway relay saved to ESP32 (disabled).";
-    elements.saveStatus.style.color = "#1D9E75";
+    setSectionStatus(
+      elements.railwayStatus,
+      enabled ? "Railway relay saved to ESP32 and enabled." : "Railway relay saved to ESP32 (disabled).",
+      "#1D9E75"
+    );
   } catch (error) {
-    elements.saveStatus.textContent = "Saved locally, but failed to sync relay config to ESP32.";
-    elements.saveStatus.style.color = "#EF9F27";
+    setSectionStatus(elements.railwayStatus, "Saved locally, but failed to sync relay config to ESP32.", "#EF9F27");
   }
 }
 
@@ -649,11 +808,9 @@ async function handleClearRailway() {
     await clearRailwayRelayConfigOnEsp();
     await pullRailwayRelayConfigFromEsp().catch(() => {});
     fillForm();
-    elements.saveStatus.textContent = "Railway relay config cleared from ESP32.";
-    elements.saveStatus.style.color = "#1D9E75";
+    setSectionStatus(elements.railwayStatus, "Railway relay config cleared from ESP32.", "#1D9E75");
   } catch (error) {
-    elements.saveStatus.textContent = "Failed to clear relay config on ESP32.";
-    elements.saveStatus.style.color = "#D85A30";
+    setSectionStatus(elements.railwayStatus, "Failed to clear relay config on ESP32.", "#D85A30");
   }
 }
 
@@ -671,13 +828,11 @@ async function handleMqttSave(e) {
   const retain = elements.mqttRetain?.value === 'true';
 
   if (enabled && !isMqttUrl(brokerUri)) {
-    elements.saveStatus.textContent = "Error: MQTT broker URI must start with mqtt://, mqtts://, ws:// or wss://";
-    elements.saveStatus.style.color = "#D85A30";
+    setSectionStatus(elements.mqttStatus, "Error: MQTT broker URI must start with mqtt://, mqtts://, ws:// or wss://", "#D85A30");
     return;
   }
   if (enabled && !topic) {
-    elements.saveStatus.textContent = "Error: MQTT topic is required.";
-    elements.saveStatus.style.color = "#D85A30";
+    setSectionStatus(elements.mqttStatus, "Error: MQTT topic is required.", "#D85A30");
     return;
   }
 
@@ -700,13 +855,13 @@ async function handleMqttSave(e) {
     await pullMqttRelayConfigFromEsp();
     await refreshMqttStatus();
     fillForm();
-    elements.saveStatus.textContent = enabled
-      ? "MQTT relay saved to ESP32 and enabled."
-      : "MQTT relay saved to ESP32 (disabled).";
-    elements.saveStatus.style.color = "#1D9E75";
+    setSectionStatus(
+      elements.mqttStatus,
+      enabled ? "MQTT relay saved to ESP32 and enabled." : "MQTT relay saved to ESP32 (disabled).",
+      "#1D9E75"
+    );
   } catch (error) {
-    elements.saveStatus.textContent = "Saved locally, but failed to sync MQTT config to ESP32.";
-    elements.saveStatus.style.color = "#EF9F27";
+    setSectionStatus(elements.mqttStatus, "Saved locally, but failed to sync MQTT config to ESP32.", "#EF9F27");
   }
 }
 
@@ -717,20 +872,14 @@ async function handleClearMqtt() {
     await pullMqttRelayConfigFromEsp().catch(() => {});
     await refreshMqttStatus();
     fillForm();
-    elements.saveStatus.textContent = "MQTT relay config cleared from ESP32.";
-    elements.saveStatus.style.color = "#1D9E75";
+    setSectionStatus(elements.mqttStatus, "MQTT relay config cleared from ESP32.", "#1D9E75");
   } catch (error) {
-    elements.saveStatus.textContent = "Failed to clear MQTT config on ESP32.";
-    elements.saveStatus.style.color = "#D85A30";
+    setSectionStatus(elements.mqttStatus, "Failed to clear MQTT config on ESP32.", "#D85A30");
   }
 }
 
 function init() {
   initializeTheme();
-  document.getElementById('themeToggle')?.addEventListener('click', () => {
-    const newTheme = document.body.classList.contains('light-theme') ? 'dark' : 'light';
-    setTheme(newTheme);
-  });
 
   initializeDateTimeDropdowns();
   initializeLocationDropdowns();
@@ -738,6 +887,7 @@ function init() {
   pullConfigFromEsp().catch(() => {});
   pullRailwayRelayConfigFromEsp().then(fillForm).catch(() => {});
   pullMqttRelayConfigFromEsp().then(fillForm).catch(() => {});
+  pullProtectionConfigFromEsp().then(fillForm).catch(() => {});
   refreshMqttStatus();
   setInterval(refreshMqttStatus, 3000);
 
@@ -746,6 +896,8 @@ function init() {
   elements.clearMaintenanceBtn?.addEventListener('click', handleClearMaintenanceForm);
   elements.clearLocationBtn?.addEventListener('click', handleClearLocationForm);
   elements.clearNvsBtn?.addEventListener('click', handleClearNvs);
+  elements.protectionForm?.addEventListener('submit', handleProtectionSave);
+  elements.resetProtectionDefaultsBtn?.addEventListener('click', handleResetProtectionDefaults);
   elements.railwayForm?.addEventListener('submit', handleRailwaySave);
   elements.clearRailwayBtn?.addEventListener('click', handleClearRailway);
   elements.mqttForm?.addEventListener('submit', handleMqttSave);
@@ -756,3 +908,4 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 })();
+

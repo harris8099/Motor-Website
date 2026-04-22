@@ -114,6 +114,16 @@
                     <span class="fault-state badge" id="fault_vibration">OK</span>
                     <button class="fault-action-btn fault-action-inline" id="fault_vibration_action" type="button" hidden>Resolve</button>
                   </div>
+                  <div class="fault-chip" data-icon="&#9889;">
+                    <span class="fault-name">Overvoltage</span>
+                    <span class="fault-state badge" id="fault_overvoltage">OK</span>
+                    <button class="fault-action-btn fault-action-inline" id="fault_overvoltage_action" type="button" hidden>Resolve</button>
+                  </div>
+                  <div class="fault-chip" data-icon="&#128268;">
+                    <span class="fault-name">Undervoltage</span>
+                    <span class="fault-state badge" id="fault_undervoltage">OK</span>
+                    <button class="fault-action-btn fault-action-inline" id="fault_undervoltage_action" type="button" hidden>Resolve</button>
+                  </div>
                 </div>
                 <div class="fault-action-status" id="faultActionStatus"></div>
               </div>
@@ -152,6 +162,11 @@
               <div class="card-label">Frequency</div>
               <div class="card-value" id="frequency">0<span class="card-unit">Hz</span></div>
               <div class="card-sub">AC line</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Protection limits</div>
+              <div class="card-value" id="protectionOvUv">OV -- / UV --</div>
+              <div class="card-sub" id="protectionCurrentTemp">I --A | T --C</div>
             </div>
             <div class="card">
               <div class="card-label">Vibration</div>

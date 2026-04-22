@@ -2,7 +2,7 @@
 const CONFIG = {
   dataEndpoint: '/data',
   faultAcknowledgeEndpoint: '/faults/ack',
-  updateInterval: 2000, // 2 seconds
+  updateInterval: 1000, // 1 second
   maxLogEntries: 10
 };
 const MAINTENANCE_CONFIG_KEY = 'maintenanceConfig';
@@ -46,6 +46,8 @@ let dataLog = [];
 let isConnected = false;
 let isFaultActionInProgress = false;
 let isMotorRunning = false;
+let isFaultResolvePending = false;
+let faultResolveRequestedAtMs = 0;
 const railwayRelayState = {
   inFlight: false,
   lastSentAtMs: 0,
@@ -64,6 +66,8 @@ const trendSeries = {
 let ambientTempFromAPI = null;
 let locationName = "";
 let hasShownLocalhostHint = false;
+let sensorFetchInFlight = false;
+let ambientFetchInFlight = false;
 
 function loadAmbientCache() {
   try {
@@ -109,6 +113,14 @@ function fetchJsonWithTimeout(url, timeoutMs = 8000) {
     .finally(() => clearTimeout(timeoutId));
 }
 
+function fetchWithTimeout(url, options = {}, timeoutMs = 5000) {
+  // [INFO] Generic timeout wrapper for local ESP endpoints.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const mergedOptions = { ...options, signal: controller.signal };
+  return fetch(url, mergedOptions).finally(() => clearTimeout(timeoutId));
+}
+
 function getAmbientFromEsp(temp) {
   // [INFO] Ambient fallback from ESP payload when cloud weather is unavailable.
   const espAmbient = Number(
@@ -149,6 +161,8 @@ const elements = {
   powerFactorBar: document.getElementById('powerFactorBar'),
   energy: document.getElementById('energy'),
   frequency: document.getElementById('frequency'),
+  protectionOvUv: document.getElementById('protectionOvUv'),
+  protectionCurrentTemp: document.getElementById('protectionCurrentTemp'),
   
   // Temperature
   temp1: document.getElementById('temp1'),
@@ -177,6 +191,10 @@ const elements = {
   fault_stall_action: document.getElementById('fault_stall_action'),
   fault_vibration: document.getElementById('fault_vibration'),
   fault_vibration_action: document.getElementById('fault_vibration_action'),
+  fault_overvoltage: document.getElementById('fault_overvoltage'),
+  fault_overvoltage_action: document.getElementById('fault_overvoltage_action'),
+  fault_undervoltage: document.getElementById('fault_undervoltage'),
+  fault_undervoltage_action: document.getElementById('fault_undervoltage_action'),
 
   // Log
   logBody: document.getElementById('logBody'),
@@ -192,12 +210,14 @@ const elements = {
 // Fault update function
 function updateFaults(data) {
   const faults = data.faults || {};
-  const faultKeys = ['overcurrent', 'overtemp', 'stall', 'vibration'];
+  const faultKeys = ['overcurrent', 'overtemp', 'stall', 'vibration', 'overvoltage', 'undervoltage'];
   const faultTitles = {
     overcurrent: 'Overcurrent',
     overtemp: 'Overtemp',
     stall: 'Stall',
-    vibration: 'Vibration'
+    vibration: 'Vibration',
+    overvoltage: 'Overvoltage',
+    undervoltage: 'Undervoltage'
   };
 
   function normalizeFaultState(rawFaultValue) {
@@ -274,6 +294,25 @@ function updateFaults(data) {
   if (elements.resolveAllFaultsBtn) {
     elements.resolveAllFaultsBtn.disabled = isFaultActionInProgress || resolvableFaultKeys.length === 0;
     elements.resolveAllFaultsBtn.dataset.faultKeys = JSON.stringify(resolvableFaultKeys);
+  }
+
+  // Resolve flow feedback:
+  // - clear waiting text when ESP reports no remaining faults
+  // - if still faulted after timeout, show guidance instead of waiting forever
+  if (isFaultResolvePending) {
+    if (pendingFaultNames.length === 0) {
+      setFaultActionStatus('Faults resolved and acknowledged by ESP.', false);
+      isFaultResolvePending = false;
+      setTimeout(() => setFaultActionStatus('', false), 2500);
+    } else if ((Date.now() - faultResolveRequestedAtMs) > 6000) {
+      setFaultActionStatus('Fault still active. Remove root cause, then resolve again.', true);
+      isFaultResolvePending = false;
+    }
+  } else if (pendingFaultNames.length === 0 && elements.faultActionStatus?.textContent) {
+    const statusText = elements.faultActionStatus.textContent.toLowerCase();
+    if (statusText.includes('waiting for esp confirmation')) {
+      setFaultActionStatus('', false);
+    }
   }
 }
 
@@ -446,7 +485,7 @@ async function acknowledgeFaults(faultKeys) {
   try {
     isFaultActionInProgress = true;
     setFaultActionStatus('Sending resolve request...', false);
-    const response = await fetch(CONFIG.faultAcknowledgeEndpoint, {
+    const response = await fetchWithTimeout(CONFIG.faultAcknowledgeEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -454,16 +493,21 @@ async function acknowledgeFaults(faultKeys) {
       body: JSON.stringify({
         faults: faultKeys
       })
-    });
+    }, 5000);
+
+    console.info('Fault resolve response status:', response.status);
 
     if (!response.ok) {
       throw new Error(`Fault acknowledge failed (${response.status})`);
     }
 
+    isFaultResolvePending = true;
+    faultResolveRequestedAtMs = Date.now();
     setFaultActionStatus('Resolve request sent. Waiting for ESP confirmation...', false);
     await fetchSensorData();
   } catch (error) {
     console.error('Fault resolve request failed:', error);
+    isFaultResolvePending = false;
     setFaultActionStatus('Failed to send resolve request. Check ESP endpoint /faults/ack.', true);
   } finally {
     isFaultActionInProgress = false;
@@ -475,7 +519,9 @@ function setupFaultActionHandlers() {
     elements.fault_overcurrent_action,
     elements.fault_overtemp_action,
     elements.fault_stall_action,
-    elements.fault_vibration_action
+    elements.fault_vibration_action,
+    elements.fault_overvoltage_action,
+    elements.fault_undervoltage_action
   ];
 
   actionButtons.forEach((button) => {
@@ -645,6 +691,24 @@ function updatePowerMetrics(data) {
 
   const freq = parseFloat(power.frequency || 0).toFixed(1);
   elements.frequency.innerHTML = freq + '<span class="card-unit">Hz</span>';
+}
+
+function updateProtectionSummary(data) {
+  if (!elements.protectionOvUv || !elements.protectionCurrentTemp) return;
+
+  const protection = data.protection || {};
+  const ov = Number(protection.overvoltageV);
+  const uv = Number(protection.undervoltageV);
+  const maxCurrent = Number(protection.maxCurrentA);
+  const maxTemp = Number(protection.maxTempC);
+
+  const ovText = Number.isFinite(ov) ? ov.toFixed(1) : '--';
+  const uvText = Number.isFinite(uv) ? uv.toFixed(1) : '--';
+  const currentText = Number.isFinite(maxCurrent) ? maxCurrent.toFixed(1) : '--';
+  const tempText = Number.isFinite(maxTemp) ? maxTemp.toFixed(1) : '--';
+
+  elements.protectionOvUv.textContent = `OV ${ovText}V / UV ${uvText}V`;
+  elements.protectionCurrentTemp.textContent = `I ${currentText}A | T ${tempText}C`;
 }
 function updateTemperature(data) {
   // [WARN] This function can run on pages that don't contain temp cards.
@@ -996,6 +1060,7 @@ function updateDashboard(data) {
     // Update all sections
     updateMotorStatus(data);
     updatePowerMetrics(data);
+    updateProtectionSummary(data);
     updateTemperature(data);
     updateVibration(data);
     updateFaults(data);
@@ -1012,6 +1077,8 @@ function updateDashboard(data) {
 
 // Fetch Data from ESP32
 async function fetchSensorData() {
+  if (sensorFetchInFlight) return;
+  sensorFetchInFlight = true;
   try {
     // [INFO] Primary telemetry poll from ESP32 HTTP server.
     const response = await fetch(CONFIG.dataEndpoint);
@@ -1040,6 +1107,8 @@ async function fetchSensorData() {
     setConnectionStatus(false);
     // Keep ambient weather section reactive even when ESP data is offline.
     updateTemperature({});
+  } finally {
+    sensorFetchInFlight = false;
   }
 }
 
@@ -1107,6 +1176,8 @@ if (document.readyState === 'loading') {
 }
 
 async function fetchAmbientTemperature() {
+  if (ambientFetchInFlight) return;
+  ambientFetchInFlight = true;
   try {
     // [INFO] Resolve location and fetch ambient weather temperature.
     const locationConfig = getAmbientLocationConfig();
@@ -1236,5 +1307,6 @@ async function fetchAmbientTemperature() {
   } finally {
     // Render ambient section immediately with latest API/fallback state.
     updateTemperature({});
+    ambientFetchInFlight = false;
   }
 }

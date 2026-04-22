@@ -1,10 +1,15 @@
 (() => {
 const THEME_KEY = 'appTheme';
-const MAX_LOG_ENTRIES = 3000;
+const IS_MOBILE = window.matchMedia('(max-width: 760px)').matches;
+const MAX_LOG_ENTRIES = IS_MOBILE ? 1000 : 3000;
+const CONSOLE_POLL_INTERVAL_MS = IS_MOBILE ? 3000 : 1500;
 
 let isPaused = false;
 let lastLogId = 0;
 let logEntries = [];
+let pollTimer = null;
+let pollInFlight = false;
+let lastRenderedSignature = '';
 
 const elements = {
   themeToggle: document.getElementById('themeToggle'),
@@ -31,7 +36,7 @@ function setTheme(theme) {
   document.body.classList.toggle('light-theme', theme === 'light');
   localStorage.setItem(THEME_KEY, theme);
   if (elements.themeToggle) {
-    elements.themeToggle.textContent = theme === 'light' ? '☀️' : '🌙';
+    elements.themeToggle.textContent = theme === 'light' ? '\u2600\uFE0F' : '\u{1F319}';
   }
 }
 
@@ -83,6 +88,10 @@ function getFilteredEntries() {
 
 function renderLogs() {
   const filtered = getFilteredEntries();
+  const signature = `${filtered.length}:${lastLogId}:${isPaused ? 1 : 0}:${elements.levelFilter?.value || 'all'}:${elements.searchInput?.value || ''}`;
+  if (signature === lastRenderedSignature) return;
+  lastRenderedSignature = signature;
+
   elements.consoleOutput.textContent = filtered.map(entryToLine).join('\n');
   if (filtered.length > 0) {
     elements.consoleOutput.textContent += '\n';
@@ -127,23 +136,42 @@ function downloadLogs() {
 }
 
 async function pollConsoleLogs() {
-  if (isPaused) return;
+  if (isPaused || document.hidden || pollInFlight) return;
+  pollInFlight = true;
   try {
     const response = await fetch(`/console/logs?since=${lastLogId}`);
     if (!response.ok) throw new Error(`Console fetch failed (${response.status})`);
     const data = await response.json();
     const logs = Array.isArray(data.logs) ? data.logs : [];
+    const prevLastLogId = lastLogId;
+    const prevCount = logEntries.length;
+
     addLogEntries(logs);
     logs.forEach((entry) => {
       lastLogId = Math.max(lastLogId, Number(entry.id) || lastLogId);
     });
     lastLogId = Math.max(lastLogId, Number(data.nextId) || lastLogId);
-    renderLogs();
+    if (logs.length > 0 || lastLogId !== prevLastLogId || logEntries.length !== prevCount) {
+      renderLogs();
+    }
     setConnectionStatus(true);
   } catch (error) {
     elements.consoleMeta.textContent = 'Console disconnected. Retrying...';
     setConnectionStatus(false);
+  } finally {
+    pollInFlight = false;
   }
+}
+
+function startPolling() {
+  if (pollTimer !== null) return;
+  pollTimer = setInterval(pollConsoleLogs, CONSOLE_POLL_INTERVAL_MS);
+}
+
+function stopPolling() {
+  if (pollTimer === null) return;
+  clearInterval(pollTimer);
+  pollTimer = null;
 }
 
 function init() {
@@ -164,6 +192,7 @@ function init() {
 
   elements.clearBtn?.addEventListener('click', () => {
     logEntries = [];
+    lastRenderedSignature = '';
     renderLogs();
   });
 
@@ -171,9 +200,19 @@ function init() {
   elements.levelFilter?.addEventListener('change', renderLogs);
   elements.searchInput?.addEventListener('input', renderLogs);
 
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopPolling();
+    } else {
+      pollConsoleLogs();
+      startPolling();
+    }
+  });
+
   pollConsoleLogs();
-  setInterval(pollConsoleLogs, 1000);
+  startPolling();
 }
 
 document.addEventListener('DOMContentLoaded', init);
 })();
+
