@@ -61,6 +61,7 @@
             <button type="submit" class="settings-btn settings-btn-primary">Save Maintenance</button>
             <button type="button" id="clearMaintenanceBtn" class="settings-btn">Clear Maintenance Form</button>
             <button type="button" id="clearNvsBtn" class="settings-btn">Clear ESP NVS</button>
+            <button type="button" id="resetEnergyBtn" class="settings-btn">Reset Energy Counter</button>
           </div>
           <p id="maintenanceStatus" class="settings-status">Status: Waiting for maintenance input...</p>
         </form>
@@ -271,15 +272,94 @@
               <span class="wifi-k">Publish Fail Count</span>
               <span class="wifi-v" id="mqttStatusFailCount">0</span>
             </div>
-          </div>
           <p id="mqttStatusLastErrorText" class="settings-status">Last error: --</p>
           <p id="mqttStatus" class="settings-status">Status: Waiting for MQTT input...</p>
         </form>
       </section>
+<section class="settings-card">
+  <h2 class="settings-title">Render HTTP Relay</h2>
 
+  <form id="vercelForm" class="settings-form">
+    <div>
+      <label class="settings-label" for="vercelEnabled">Enable Render Relay</label>
+      <select id="vercelEnabled" class="settings-input">
+        <option value="false">Disabled</option>
+        <option value="true">Enabled</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="settings-label" for="vercelEndpoint">Render Backend URL</label>
+      <input id="vercelEndpoint" class="settings-input" type="url"
+             placeholder="https://your-app.onrender.com/data">
+    </div>
+
+    <div>
+      <label class="settings-label" for="vercelApiKey">API Key</label>
+      <input id="vercelApiKey" class="settings-input" type="text"
+             placeholder="Your Render API key">
+    </div>
+
+    <div>
+      <label class="settings-label" for="vercelDeviceId">Device ID</label>
+      <input id="vercelDeviceId" class="settings-input" type="text"
+             maxlength="64" placeholder="esp32-001">
+    </div>
+
+    <div>
+      <label class="settings-label" for="vercelIntervalSeconds">
+        Send Interval (seconds, fixed at 5)
+      </label>
+      <input id="vercelIntervalSeconds" class="settings-input"
+             type="number" min="2" max="3600" step="1" placeholder="10">
+    </div>
+
+    <div class="settings-actions">
+      <button type="submit" class="settings-btn settings-btn-primary">
+        Save Render Relay
+      </button>
+      <button type="button" id="clearVercelBtn" class="settings-btn">
+        Clear Render Relay
+      </button>
+    </div>
+
+    <div class="wifi-status-grid">
+      <div class="wifi-kv">
+        <span class="wifi-k">Enabled</span>
+        <span class="wifi-v" id="vercelStatusEnabled">--</span>
+      </div>
+      <div class="wifi-kv">
+        <span class="wifi-k">Connected</span>
+        <span class="wifi-v" id="vercelStatusConnected">--</span>
+      </div>
+      <div class="wifi-kv">
+        <span class="wifi-k">Last Send (ms)</span>
+        <span class="wifi-v" id="vercelStatusLastSend">--</span>
+      </div>
+      <div class="wifi-kv">
+        <span class="wifi-k">Last Error (ms)</span>
+        <span class="wifi-v" id="vercelStatusLastErrorMs">--</span>
+      </div>
+      <div class="wifi-kv">
+        <span class="wifi-k">Success Count</span>
+        <span class="wifi-v" id="vercelStatusSuccessCount">0</span>
+      </div>
+      <div class="wifi-kv">
+        <span class="wifi-k">Fail Count</span>
+        <span class="wifi-v" id="vercelStatusFailCount">0</span>
+      </div>
+    </div>
+
+    <p id="vercelStatusLastErrorText" class="settings-status">
+      Last error: --
+    </p>
+    <p id="vercelStatus" class="settings-status">
+      Status: Waiting for Render input...
+    </p>
+  </form>
+</section>
     </div>
   </div>
-  <script src="app.js"></script>
   <script src="settings.js"></script>
 </body>
 </html>

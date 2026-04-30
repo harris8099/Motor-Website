@@ -181,9 +181,16 @@ async function connectWifi(event) {
       throw new Error(errorText || `Connect failed (${response.status})`);
     }
 
+    setSectionStatus(elements.connectStatusMessage, `Connect request sent for "${ssid}". Waiting for WiFi link...`);
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    await fetchWifiStatus();
-    setSectionStatus(elements.connectStatusMessage, `Connect request sent for "${ssid}".`);
+    try {
+      const status = await fetchWifiStatus();
+      if (status.connected === true && status.currentSsid === ssid) {
+        setSectionStatus(elements.connectStatusMessage, `Connected to "${ssid}".`);
+      }
+    } catch (_) {
+      // Keep the accepted connect request as success even if STA association is still in progress.
+    }
   } catch (error) {
     setSectionStatus(elements.connectStatusMessage, error.message, true);
   }
